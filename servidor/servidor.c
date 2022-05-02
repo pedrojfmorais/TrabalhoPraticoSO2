@@ -4,8 +4,9 @@
 #include <fcntl.h>
 #include <stdio.h>
 
-#define TAM 200
+#define TAM 200 //tamanho asdasasdasd
 #define caminhoRegistry _T("software\\so2\\tp\\")
+
 
 
 typedef struct {
