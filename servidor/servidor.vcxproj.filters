@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\monitor\servidor.c">
+    <ClCompile Include="servidor.c">
       <Filter>Arquivos de Origem</Filter>
     </ClCompile>
   </ItemGroup>
