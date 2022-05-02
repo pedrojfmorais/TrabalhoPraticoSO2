@@ -4,7 +4,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 
-#define TAM 200 //tamanho asdasasdasd
+#define TAM 200
 #define caminhoRegistry _T("software\\so2\\tp\\")
 
 
