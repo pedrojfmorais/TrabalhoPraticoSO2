@@ -7,16 +7,6 @@
 #define TAM 200
 #define caminhoRegistry _T("software\\so2\\tp\\")
 
-typedef struct {
-	DWORD nLinhas;
-	DWORD nColunas;
-	DWORD tempoAguaComecaFluir;
-	DWORD coordenadasOrigemAgua[2];
-	DWORD coordenadasDestinoAgua[2];
-	int mapaJogo[20][20];
-} DadosMapaJogo;
-
-
 //memória partilhada para o monitor
 #define SHM_NAME _T("memoriaPartilhaMapaJogo")
 #define SEMAPHORE_NAME _T("SEMAFORO_PartilhaMapaJogo")
@@ -26,6 +16,26 @@ typedef struct {
 
 #define MSGBUFSIZE sizeof(DadosMapaJogo)
 
+// Um dos tubos multiplicado por 10 significa que tem água, exceto tuboVazio
+#define tuboVazio 0
+#define tuboOrigemAgua 1
+#define tuboDestinoAgua 2
+#define tuboHorizontal 3
+#define tuboVertical 4
+#define tuboCurvaEsquerdaParaCima 5
+#define tuboEsquerdaParaBaixo 6
+#define tuboCurvaDireitaParaCima 7
+#define tuboDireitaParaBaixo 8
+
+typedef struct {
+	DWORD nLinhas;
+	DWORD nColunas;
+	DWORD tempoAguaComecaFluir;
+	DWORD coordenadasOrigemAgua[2];
+	DWORD coordenadasDestinoAgua[2];
+	int mapaJogo[20][20];
+} DadosMapaJogo;
+
 typedef struct {
 	HANDLE hMapFile;
 	DadosMapaJogo* mapaJogo;
@@ -34,6 +44,9 @@ typedef struct {
 	HANDLE hRWMutex;
 	HANDLE hSemaforo;
 } PartilhaMapaJogo;
+
+// fica
+typedef BOOL(*PFUNC_TypeBool_NoArguments) ();
 
 DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max) {
 	return (rand() % (max - min)) + min;
@@ -89,12 +102,25 @@ void inicializaServidor(int argc, TCHAR* argv[], DadosMapaJogo *dadosMapaJogo) {
 		
 	else if (dadosMapaJogo->coordenadasOrigemAgua[0] < (dadosMapaJogo->nLinhas / 2) && dadosMapaJogo->coordenadasDestinoAgua[0] < (dadosMapaJogo->nLinhas / 2))
 		dadosMapaJogo->coordenadasDestinoAgua[0] += dadosMapaJogo->nLinhas / 2;
-		
+
 	for (int i = 0; i < dadosMapaJogo->nLinhas; i++) {
 		for (int j = 0; j < dadosMapaJogo->nColunas; j++) {
-			dadosMapaJogo->mapaJogo[i][j] = 0;
+			if (i == dadosMapaJogo->coordenadasOrigemAgua[0] && j == dadosMapaJogo->coordenadasOrigemAgua[1])
+				dadosMapaJogo->mapaJogo[i][j] = tuboOrigemAgua;
+			else if (i == dadosMapaJogo->coordenadasDestinoAgua[0] && j == dadosMapaJogo->coordenadasDestinoAgua[1])
+				dadosMapaJogo->mapaJogo[i][j] = tuboDestinoAgua;
+			else
+				dadosMapaJogo->mapaJogo[i][j] = tuboVazio;
 		}
 	}
+
+	//debug
+	dadosMapaJogo->mapaJogo[0][3] = tuboHorizontal;
+	dadosMapaJogo->mapaJogo[2][3] = tuboVertical;
+	dadosMapaJogo->mapaJogo[4][3] = tuboCurvaDireitaParaCima;
+	dadosMapaJogo->mapaJogo[0][1] = tuboCurvaEsquerdaParaCima;
+	dadosMapaJogo->mapaJogo[2][1] = tuboDireitaParaBaixo;
+	dadosMapaJogo->mapaJogo[4][1] = tuboEsquerdaParaBaixo;
 }
 
 BOOL lerDoRegistryDadosMapaJogo(TCHAR nomeChaves[3][TAM], DWORD val[3]) {
@@ -285,6 +311,31 @@ BOOL initMemAndSync(PartilhaMapaJogo* cdata) {
 	}
 }
 
+void verificacoesIniciais() {
+	TCHAR caminhoCompletoDLL[MAX_PATH];
+	GetFullPathName(_T("utils_so2_tp.dll"),
+		MAX_PATH,
+		caminhoCompletoDLL,
+		NULL);
+	HINSTANCE hLibrary;
+	hLibrary = LoadLibrary(caminhoCompletoDLL);
+
+	if (hLibrary == NULL) {
+		_tprintf(_T("A DLL não abriu!\n"));
+		return -1;
+	}
+
+	PFUNC_TypeBool_NoArguments verificaServidorJaEstaCorrer;
+	verificaServidorJaEstaCorrer = (PFUNC_TypeBool_NoArguments)GetProcAddress(hLibrary, "verificaServidorJaEstaCorrer");
+
+	if (verificaServidorJaEstaCorrer() == TRUE) {
+		_tprintf(_T("O servidor já está a correr!\n"));
+		exit(1);
+	}
+
+	_tprintf(_T("%s"), MUTEX_VERIFY_SERVER_OPEN);
+}
+
 int _tmain(int argc, TCHAR* argv[]) {
 
 #ifdef UNICODE
@@ -292,6 +343,8 @@ int _tmain(int argc, TCHAR* argv[]) {
 	_setmode(_fileno(stdout), _O_WTEXT);
 	_setmode(_fileno(stderr), _O_WTEXT);
 #endif 
+
+	verificacoesIniciais();
 
 	DadosMapaJogo dadosMapaJogo;
 
@@ -308,19 +361,12 @@ int _tmain(int argc, TCHAR* argv[]) {
 
 	HANDLE hThread = CreateThread(NULL, 0, atualizaMapaJogoParaMonitor, &dadosPartilhaMapaJogo, 0, NULL);
 
-	for (int i = 0; i < dadosMapaJogo.nLinhas; i++) {
-		for (int j = 0; j < dadosMapaJogo.nColunas; j++) {
-			_tprintf(_T("%d "), dadosMapaJogo.mapaJogo[i][j]);
-		}
-		_tprintf(_T("\n"));
-	}
-
-	TCHAR qwe[TAM];
+	TCHAR comandoInserido[TAM];
 
 	while (1) {
-		_getts_s(qwe, TAM);
+		_getts_s(comandoInserido, TAM);
 
-		if (_tcscmp(qwe, _T("exit")) == 0) {
+		if (_tcscmp(comandoInserido, _T("exit")) == 0) {
 			dadosPartilhaMapaJogo.threadMustContinue = 0;
 			ReleaseSemaphore(dadosPartilhaMapaJogo.hSemaforo, 1, NULL);
 			break;
