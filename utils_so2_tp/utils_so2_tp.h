@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #define TAM 200
+#define N_JOGADORES 2
 #define caminhoRegistry _T("software\\so2\\tp\\")
 
 //memória partilhada para o monitor
@@ -60,6 +61,8 @@ typedef struct {
 	DWORD coordenadaAtualAgua[2];
 
 	int mapaJogo[20][20];
+
+	DWORD proximaPeca;
 } DadosJogo;
 
 typedef struct {

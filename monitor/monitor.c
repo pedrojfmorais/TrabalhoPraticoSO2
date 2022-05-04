@@ -24,25 +24,166 @@ void limpaEcra() {
 	system("cls");
 }
 
+void printTuboOrigemAgua(int i, int j, BOOL temAgua) {
+	if (i % 3 == 0 || i % 3 == 2)
+		_tprintf(_T("█"));
+
+	else if (i % 3 == 1) {
+		if (j % 3 == 0)
+			_tprintf(_T("█"));
+
+		else if (j % 3 == 1 || j % 3 == 2) {
+			if (temAgua) {
+				SetColor(CorAzulClaro);
+				_tprintf(_T("█"));
+				SetColor(CorAmareloClaro);
+			}
+			else
+				_tprintf(_T(" "));
+		}
+	}
+}
+void printTuboDestinoAgua(int i, int j, BOOL temAgua) {
+	if (i % 3 == 0 || i % 3 == 2)
+		_tprintf(_T("█"));
+
+	else if (i % 3 == 1) {
+		if (j % 3 == 0 || j % 3 == 1) {
+			if (temAgua) {
+				SetColor(CorAzulClaro);
+				_tprintf(_T("█"));
+				SetColor(CorAmareloClaro);
+			}
+			else
+				_tprintf(_T(" "));
+		}
+		else if (j % 3 == 2)
+			_tprintf(_T("█"));
+
+	}
+}
+void printTuboHorizontal(int i, int j, BOOL temAgua) {
+	if (i % 3 == 0 || i % 3 == 2)
+		_tprintf(_T("█"));
+
+	else if (i % 3 == 1) {
+		if (temAgua) {
+			SetColor(CorAzulClaro);
+			_tprintf(_T("█"));
+			SetColor(CorAmareloClaro);
+		}
+		else
+			_tprintf(_T(" "));
+	}
+}
+void printTuboVertical(int i, int j, BOOL temAgua) {
+	if (j % 3 == 0 || j % 3 == 2)
+		_tprintf(_T("█"));
+
+	else if (j % 3 == 1) {
+		if (temAgua) {
+			SetColor(CorAzulClaro);
+			_tprintf(_T("█"));
+			SetColor(CorAmareloClaro);
+		}
+		else
+			_tprintf(_T(" "));
+	}
+}
+void printTuboCurvaEsquerdaParaCima(int i, int j, BOOL temAgua) {
+	if ((j % 3 == 0 && i % 3 != 1) || (i % 3 == 2 && j % 3 == 1) || (j % 3 == 2))
+		_tprintf(_T("█"));
+
+	else {
+		if (temAgua) {
+			SetColor(CorAzulClaro);
+			_tprintf(_T("█"));
+			SetColor(CorAmareloClaro);
+		}
+		else
+			_tprintf(_T(" "));
+	}
+}
+void printTuboEsquerdaParaBaixo(int i, int j, BOOL temAgua) {
+	if ((j % 3 == 0 && i % 3 != 1) || (i % 3 == 0 && j % 3 == 1) || (j % 3 == 2))
+		_tprintf(_T("█"));
+
+	else {
+		if (temAgua) {
+			SetColor(CorAzulClaro);
+			_tprintf(_T("█"));
+			SetColor(CorAmareloClaro);
+		}
+		else
+			_tprintf(_T(" "));
+	}
+}
+void printTuboCurvaDireitaParaCima(int i, int j, BOOL temAgua) {
+	if ((j % 3 == 2 && i % 3 != 1) || (i % 3 == 2 && j % 3 == 1) || (j % 3 == 0))
+		_tprintf(_T("█"));
+
+	else {
+		if (temAgua) {
+			SetColor(CorAzulClaro);
+			_tprintf(_T("█"));
+			SetColor(CorAmareloClaro);
+		}
+		else
+			_tprintf(_T(" "));
+	}
+}
+void printTuboDireitaParaBaixo(int i, int j, BOOL temAgua) {
+	if ((j % 3 == 2 && i % 3 != 1) || (i % 3 == 0 && j % 3 == 1) || (j % 3 == 0))
+		_tprintf(_T("█"));
+
+	else {
+		if (temAgua) {
+			SetColor(CorAzulClaro);
+			_tprintf(_T("█"));
+			SetColor(CorAmareloClaro);
+		}
+		else
+			_tprintf(_T(" "));
+	}
+}
+void printPeca(DWORD peca, int i, int j, BOOL temAgua) {
+	SetColor(CorAmareloClaro);
+	switch (peca)
+	{
+	case tuboVazio:
+		_tprintf(_T(" "));
+		break;
+	case tuboOrigemAgua:
+		printTuboOrigemAgua(i, j, temAgua);
+		break;
+	case tuboDestinoAgua:
+		printTuboDestinoAgua(i, j, temAgua);
+		break;
+	case tuboHorizontal:
+		printTuboHorizontal(i, j, temAgua);
+		break;
+	case tuboVertical:
+		printTuboVertical(i, j, temAgua);
+		break;
+	case tuboCurvaEsquerdaParaCima:
+		printTuboCurvaEsquerdaParaCima(i, j, temAgua);
+		break;
+	case tuboEsquerdaParaBaixo:
+		printTuboEsquerdaParaBaixo(i, j, temAgua);
+		break;
+	case tuboCurvaDireitaParaCima:
+		printTuboCurvaDireitaParaCima(i, j, temAgua);
+		break;
+	case tuboDireitaParaBaixo:
+		printTuboDireitaParaBaixo(i, j, temAgua);
+		break;
+	default:
+		_tprintf(_T(" "));
+	}
+}
 void desenharMapaJogo(DadosJogo* dadosJogo) {
 
 	_tprintf(_T("\n\n\n"));
-
-	SetColor(CorVerde);
-	if (dadosJogo->ganhou) {
-		_tprintf(_T("O jogador %d ganhou!\n"), dadosJogo->idJogador);
-		SetColor(CorBranco);
-		return;
-	}
-
-	SetColor(CorVermelho);
-	if (dadosJogo->jogoPausado)
-		_tprintf(_T("Jogo em pausa!\n"));
-
-	SetColor(CorBranco);
-	_tprintf(_T("Jogador %d\n"), dadosJogo->idJogador);
-	_tprintf(_T("Pontuação: %d\n"), dadosJogo->pontuacao);
-	_tprintf(_T("Tempo decorrido: %d segundos\n"), dadosJogo->tempoDecorrido);
 
 	SetColor(CorBranco);
 	for (int i = 0; i < dadosJogo->nLinhas * 3; i++)
@@ -88,146 +229,59 @@ void desenharMapaJogo(DadosJogo* dadosJogo) {
 				temAgua = TRUE;
 			}
 
-			SetColor(CorAmareloClaro);
-			switch (tipoTubo)
-			{
-			case tuboVazio:
-				_tprintf(_T(" "));
-				break;
-			case tuboOrigemAgua:
-				if (i % 3 == 0 || i % 3 == 2) 
-					_tprintf(_T("█"));
-				
-				else if (i % 3 == 1) {
-					if (j % 3 == 0) 
-						_tprintf(_T("█"));
-					
-					else if (j % 3 == 1 || j % 3 == 2) {
-						if (temAgua) {
-							SetColor(CorAzulClaro);
-							_tprintf(_T("█"));
-							SetColor(CorAmareloClaro);
-						}else
-							_tprintf(_T(" "));
-					}
-				}
-				break;
-			case tuboDestinoAgua:
-				if (i % 3 == 0 || i % 3 == 2) 
-					_tprintf(_T("█"));
-				
-				else if (i % 3 == 1) {
-					if (j % 3 == 0 || j % 3 == 1) {
-						if (temAgua) {
-							SetColor(CorAzulClaro);
-							_tprintf(_T("█"));
-							SetColor(CorAmareloClaro);
-						}
-						else
-							_tprintf(_T(" "));
-					}
-					else if (j % 3 == 2) 
-						_tprintf(_T("█"));
-					
-				}
-						
-				break;
-			case tuboHorizontal:
-
-				if (i % 3 == 0 || i % 3 == 2)
-					_tprintf(_T("█"));
-
-				else if (i % 3 == 1) {
-					if (temAgua) {
-						SetColor(CorAzulClaro);
-						_tprintf(_T("█"));
-						SetColor(CorAmareloClaro);
-					}
-					else
-						_tprintf(_T(" "));
-				}
-				break;
-			case tuboVertical:
-				if (j % 3 == 0 || j % 3 == 2)
-					_tprintf(_T("█"));
-
-				else if (j % 3 == 1) {
-					if (temAgua) {
-						SetColor(CorAzulClaro);
-						_tprintf(_T("█"));
-						SetColor(CorAmareloClaro);
-					}
-					else
-						_tprintf(_T(" "));
-				}
-				break;
-			case tuboCurvaEsquerdaParaCima:
-				if ((j % 3 == 0 && i % 3 != 1) || (i % 3 == 2 && j % 3 == 1) || (j % 3 == 2))
-					_tprintf(_T("█"));
-
-				else {
-					if (temAgua) {
-						SetColor(CorAzulClaro);
-						_tprintf(_T("█"));
-						SetColor(CorAmareloClaro);
-					}
-					else
-						_tprintf(_T(" "));
-				}
-
-				break;
-			case tuboEsquerdaParaBaixo:
-				if ((j % 3 == 0 && i % 3 != 1) || (i % 3 == 0 && j % 3 == 1) || (j % 3 == 2))
-					_tprintf(_T("█"));
-
-				else {
-					if (temAgua) {
-						SetColor(CorAzulClaro);
-						_tprintf(_T("█"));
-						SetColor(CorAmareloClaro);
-					}
-					else
-						_tprintf(_T(" "));
-				}
-
-				break;
-			case tuboCurvaDireitaParaCima:
-				if ((j % 3 == 2 && i % 3 != 1) || (i % 3 == 2 && j % 3 == 1) || (j % 3 == 0))
-					_tprintf(_T("█"));
-
-				else {
-					if (temAgua) {
-						SetColor(CorAzulClaro);
-						_tprintf(_T("█"));
-						SetColor(CorAmareloClaro);
-					}
-					else
-						_tprintf(_T(" "));
-				}
-					
-				break;
-			case tuboDireitaParaBaixo:
-				if ((j % 3 == 2 && i % 3 != 1) || (i % 3 == 0 && j % 3 == 1) || (j % 3 == 0))
-					_tprintf(_T("█"));
-
-				else {
-					if (temAgua) {
-						SetColor(CorAzulClaro);
-						_tprintf(_T("█"));
-						SetColor(CorAmareloClaro);
-					}
-					else
-						_tprintf(_T(" "));
-				}
-
-				break;
-			default:
-				_tprintf(_T(" "));
-			}
-			
+			printPeca(tipoTubo, i, j, temAgua);
 		}
 		SetColor(CorSalmao);
-		_tprintf(_T("|\n"));
+		_tprintf(_T("|"));
+
+		switch (i)
+		{
+		case 0: 
+			_tprintf(_T("\t"));
+			if (dadosJogo->ganhou) {
+
+				SetColor(CorVerde);
+				_tprintf(_T("O jogador %d ganhou!\n"), dadosJogo->idJogador);
+
+			}else if (dadosJogo->jogoPausado){
+				SetColor(CorVermelho);
+				_tprintf(_T("Jogo em pausa!"));
+			}
+			break;
+		case 1:
+			_tprintf(_T("\t"));
+			SetColor(CorBranco);
+			_tprintf(_T("Jogador %d"), dadosJogo->idJogador);
+			break;
+		case 2:
+			_tprintf(_T("\t"));
+			SetColor(CorBranco);
+			_tprintf(_T("Pontuação: %d"), dadosJogo->pontuacao);
+			break;
+		case 3:
+			_tprintf(_T("\t"));
+			SetColor(CorBranco);
+			_tprintf(_T("Tempo decorrido: %d segundos"), dadosJogo->tempoDecorrido);
+			break;
+		case 5:
+			SetColor(CorBranco);
+			_tprintf(_T("\tPróxima peça:"));
+			break;
+		default:
+			break;
+		}
+
+		if (i == 6 || i == 7 || i == 8) {
+			_tprintf(_T("\t"));
+			for (int j = 0; j < 3; j++)
+			{
+				printPeca(dadosJogo->proximaPeca, i, j, FALSE);
+			}
+		}
+
+		_tprintf(_T("\n"));
+		SetColor(CorSalmao);
+
 		if (i == (dadosJogo->nLinhas * 3) - 1) {
 
 			for (int i = 0; i < (dadosJogo->nColunas * 3) + 2; i++) {

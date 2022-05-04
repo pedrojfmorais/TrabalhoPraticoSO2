@@ -5,6 +5,10 @@ DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max) {
 	return (rand() % (max - min)) + min;
 }
 
+DWORD getRandomProximaPeca(){
+	return getRandomNumberBetweenMaxAndMin(1, 9); //maior peça + 1
+}
+
 void inicializaJogo(DadosJogo* jogo, DWORD* definicoesJogo) {
 
 	jogo->nLinhas = definicoesJogo[0];
@@ -46,6 +50,8 @@ void inicializaJogo(DadosJogo* jogo, DWORD* definicoesJogo) {
 	jogo->coordenadaAtualAgua[0] = jogo->coordenadasOrigemAgua[0];
 	jogo->coordenadaAtualAgua[1] = jogo->coordenadasOrigemAgua[1];
 
+	jogo->proximaPeca = getRandomProximaPeca();
+
 	//debug
 	jogo->mapaJogo[0][3] = tuboHorizontal*10;
 	jogo->mapaJogo[2][3] = tuboVertical;
@@ -86,9 +92,11 @@ void inicializaServidor(int argc, TCHAR* argv[], PartilhaJogo* partilhaJogo, DWO
 
 	inicializaJogo(partilhaJogo->jogador1, definicoesJogo);
 	partilhaJogo->jogador1->idJogador = 1;
-	partilhaJogo->jogador1->ganhou = TRUE;
 	inicializaJogo(partilhaJogo->jogador2, definicoesJogo);
 	partilhaJogo->jogador2->idJogador = 2;
+
+	//debug
+	partilhaJogo->jogador1->jogoPausado = TRUE;
 
 }
 
@@ -206,6 +214,120 @@ BOOL WINAPI atualizaMapaJogoParaMonitor(LPVOID p) {
 	return TRUE;
 }
 
+//testar
+BOOL pathfindAguaParaCima(DadosJogo* dadosJogo) {
+
+	if (dadosJogo->coordenadaAtualAgua[0] == 0)
+		return FALSE;
+
+	dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]] *= 10;
+	dadosJogo->coordenadaAtualAgua[0] -= 1;
+	return TRUE;
+}
+//testar
+BOOL pathfindAguaParaBaixo(DadosJogo* dadosJogo) {
+
+	if (dadosJogo->coordenadaAtualAgua[0] == dadosJogo->nLinhas-1)
+		return FALSE;
+
+	dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]] *= 10;
+	dadosJogo->coordenadaAtualAgua[0] += 1;
+	return TRUE;
+}
+//testar
+BOOL pathfindAguaParaEsquerda(DadosJogo* dadosJogo) {
+
+	if (dadosJogo->coordenadaAtualAgua[1] == 0)
+		return FALSE;
+
+	dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]] *= 10;
+	dadosJogo->coordenadaAtualAgua[1] -= 1;
+	return TRUE;
+}
+//testar
+BOOL pathfindAguaParaDireita(DadosJogo* dadosJogo) {
+
+	if (dadosJogo->coordenadaAtualAgua[1] == dadosJogo->nColunas - 1)
+		return FALSE;
+
+	dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]] *= 10;
+	dadosJogo->coordenadaAtualAgua[1] += 1;
+	return TRUE;
+}
+
+BOOL pathfindAguaJogo(DadosJogo* dadosJogo) {
+
+	//coordenada atual da água no mapa
+	switch (dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]])
+	{
+	case tuboCurvaEsquerdaParaCima:
+		
+		if (dadosJogo->coordenadaAtualAgua[0] != 0 && 
+			dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1] - 1] % 10 > 0)
+
+			return pathfindAguaParaCima(dadosJogo);
+
+		else if (dadosJogo->coordenadaAtualAgua[1] != 0 && 
+			dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0] - 1][dadosJogo->coordenadaAtualAgua[1]] % 10 > 0)
+			
+			return pathfindAguaParaEsquerda(dadosJogo);
+		
+		break;
+	case tuboCurvaDireitaParaCima:
+
+		
+		break;
+	case tuboEsquerdaParaBaixo:
+	case tuboDireitaParaBaixo:
+		break;
+	case tuboHorizontal:
+		break;
+	case tuboVertical:
+		break;
+	case tuboOrigemAgua:
+		break;
+	case tuboDestinoAgua:
+		break;
+	default:
+		break;
+	}
+
+}
+
+BOOL WINAPI decorrerJogo(LPVOID p) {
+	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
+	
+	while (1) {
+
+		BOOL sofreuAlteracoes = FALSE;
+
+		for (DWORD i = 0; i < N_JOGADORES; i++)
+		{
+			DadosJogo* dadosJogo;
+
+			if (i == 0)
+				dadosJogo == partilhaJogo->jogador1;
+			else if (i == 1)
+				dadosJogo == partilhaJogo->jogador2;
+
+			if (!dadosJogo->aJogar || dadosJogo->jogoPausado)
+				continue;
+
+			if (dadosJogo->tempoAguaComecaFluir < dadosJogo->tempoDecorrido) {
+				//água avança a cada 2 segundos
+				if ((dadosJogo->tempoDecorrido - dadosJogo->tempoAguaComecaFluir) % 2 == 0) {
+					//pathfind
+				}
+			}
+
+			dadosJogo->tempoDecorrido += 1;
+			sofreuAlteracoes = TRUE;
+		}
+		if(sofreuAlteracoes)
+			ReleaseSemaphore(partilhaJogo->hSemaforo, 1, NULL);
+		Sleep(1000);
+	}
+}
 HINSTANCE verificacoesIniciais() {
 	TCHAR caminhoCompletoDLL[MAX_PATH];
 	GetFullPathName(_T("utils_so2_tp.dll"),
