@@ -1,5 +1,5 @@
 #pragma once
-#include <windows.h>
+#include "utils_so2_tp.h"
 
 #ifdef UTILS_EXPORTS
 #define DLL_IMP_API __declspec(dllexport)
@@ -8,3 +8,4 @@
 #endif
 
 DLL_IMP_API BOOL verificaServidorJaEstaCorrer();
+DLL_IMP_API BOOL initMemAndSync(PartilhaMapaJogo* cdata);

@@ -1,52 +1,8 @@
-﻿#include <windows.h>
-#include <tchar.h>
-#include <io.h>
-#include <fcntl.h>
-#include <stdio.h>
+﻿
+#include "..\\utils_so2_tp\utils_so2_tp.h"
 
-#define TAM 200
-#define caminhoRegistry _T("software\\so2\\tp\\")
-
-//memória partilhada para o monitor
-#define SHM_NAME _T("memoriaPartilhaMapaJogo")
-#define SEMAPHORE_NAME _T("SEMAFORO_PartilhaMapaJogo")
-#define MUTEX_NAME_PARTILHA_MAPA_JOGO _T("MutexAtualizarMapaJogo")
-#define EVENT_NAME_PARTILHA_MAPA_JOGO _T("NovaAtualizacaoMapaJogo")
-#define MSGTEXT_SZ 1000
-
-#define MSGBUFSIZE sizeof(DadosMapaJogo)
-
-// Um dos tubos multiplicado por 10 significa que tem água, exceto tuboVazio
-#define tuboVazio 0
-#define tuboOrigemAgua 1
-#define tuboDestinoAgua 2
-#define tuboHorizontal 3
-#define tuboVertical 4
-#define tuboCurvaEsquerdaParaCima 5
-#define tuboEsquerdaParaBaixo 6
-#define tuboCurvaDireitaParaCima 7
-#define tuboDireitaParaBaixo 8
-
-typedef struct {
-	DWORD nLinhas;
-	DWORD nColunas;
-	DWORD tempoAguaComecaFluir;
-	DWORD coordenadasOrigemAgua[2];
-	DWORD coordenadasDestinoAgua[2];
-	int mapaJogo[20][20];
-} DadosMapaJogo;
-
-typedef struct {
-	HANDLE hMapFile;
-	DadosMapaJogo* mapaJogo;
-	int threadMustContinue;
-	HANDLE newMsg;
-	HANDLE hRWMutex;
-	HANDLE hSemaforo;
-} PartilhaMapaJogo;
-
-// fica
 typedef BOOL(*PFUNC_TypeBool_NoArguments) ();
+typedef BOOL(*PFUNC_TypeBool_PointerPartilhaMapaJogo) (PartilhaMapaJogo*);
 
 DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max) {
 	return (rand() % (max - min)) + min;
@@ -237,81 +193,7 @@ BOOL WINAPI atualizaMapaJogoParaMonitor(LPVOID p) {
 	return TRUE;
 }
 
-BOOL initMemAndSync(PartilhaMapaJogo* cdata) {
-
-	cdata->hMapFile = CreateFileMapping(
-		INVALID_HANDLE_VALUE,
-		NULL,
-		PAGE_READWRITE,
-		0,
-		MSGBUFSIZE,
-		SHM_NAME
-	);
-
-	if (cdata->hMapFile == NULL) {
-		_tprintf(_T("ERROR: CreateFileMapping (%d)\n"), GetLastError());
-		return FALSE;
-	}
-
-	cdata->mapaJogo = (DadosMapaJogo*)MapViewOfFile(
-		cdata->hMapFile,
-		FILE_MAP_ALL_ACCESS,
-		0,
-		0,
-		MSGBUFSIZE
-	);
-
-
-	if (cdata->hMapFile == NULL) {
-		_tprintf(_T("ERROR: MapViewOfFile (%d)\n"), GetLastError());
-		CloseHandle(cdata->hMapFile);
-		return FALSE;
-	}
-
-	cdata->hRWMutex = CreateMutex(
-		NULL,
-		FALSE,
-		MUTEX_NAME_PARTILHA_MAPA_JOGO
-	);
-
-	if (cdata->hRWMutex == NULL) {
-		_tprintf(_T("ERROR: CreateMutex (%d)\n"), GetLastError());
-		UnmapViewOfFile(cdata->mapaJogo);
-		CloseHandle(cdata->hMapFile);
-		return FALSE;
-	}
-
-	cdata->newMsg = CreateEvent(
-		NULL,
-		TRUE,
-		FALSE,
-		EVENT_NAME_PARTILHA_MAPA_JOGO
-	);
-
-	if (cdata->newMsg == NULL) {
-		_tprintf(_T("ERROR: CreateEvent (%d)\n"), GetLastError());
-		UnmapViewOfFile(cdata->mapaJogo);
-		CloseHandle(cdata->hMapFile);
-		CloseHandle(cdata->hRWMutex);
-		return FALSE;
-	}
-	cdata->hSemaforo = CreateSemaphore(
-		NULL,
-		0,
-		1,
-		SEMAPHORE_NAME
-	);
-	if (cdata->hSemaforo == NULL) {
-		_tprintf(_T("ERROR: CreateSemaphore (%d)\n"), GetLastError());
-		UnmapViewOfFile(cdata->mapaJogo);
-		CloseHandle(cdata->hMapFile);
-		CloseHandle(cdata->hRWMutex);
-		CloseHandle(cdata->newMsg);
-		return FALSE;
-	}
-}
-
-void verificacoesIniciais() {
+HINSTANCE verificacoesIniciais() {
 	TCHAR caminhoCompletoDLL[MAX_PATH];
 	GetFullPathName(_T("utils_so2_tp.dll"),
 		MAX_PATH,
@@ -332,8 +214,7 @@ void verificacoesIniciais() {
 		_tprintf(_T("O servidor já está a correr!\n"));
 		exit(1);
 	}
-
-	_tprintf(_T("%s"), MUTEX_VERIFY_SERVER_OPEN);
+	return hLibrary;
 }
 
 int _tmain(int argc, TCHAR* argv[]) {
@@ -344,20 +225,24 @@ int _tmain(int argc, TCHAR* argv[]) {
 	_setmode(_fileno(stderr), _O_WTEXT);
 #endif 
 
-	verificacoesIniciais();
+	HINSTANCE hLibrary = verificacoesIniciais();
 
-	DadosMapaJogo dadosMapaJogo;
-
-	inicializaServidor(argc, argv, &dadosMapaJogo);
-
-	_tprintf(_T("%d %d %d \n"), dadosMapaJogo.nLinhas, dadosMapaJogo.nColunas, dadosMapaJogo.tempoAguaComecaFluir);
-	_tprintf(_T("%d %d \n"), dadosMapaJogo.coordenadasOrigemAgua[0], dadosMapaJogo.coordenadasOrigemAgua[1]);
-	_tprintf(_T("%d %d \n"), dadosMapaJogo.coordenadasDestinoAgua[0], dadosMapaJogo.coordenadasDestinoAgua[1]);
+	PFUNC_TypeBool_PointerPartilhaMapaJogo initMemAndSync;
+	initMemAndSync = (PFUNC_TypeBool_PointerPartilhaMapaJogo)GetProcAddress(hLibrary, "initMemAndSync");
 
 	PartilhaMapaJogo dadosPartilhaMapaJogo;
 
 	if (!initMemAndSync(&dadosPartilhaMapaJogo))
 		return 1;
+
+	DadosMapaJogo dadosMapaJogo;
+
+	inicializaServidor(argc, argv, &dadosMapaJogo);
+
+	//debig
+	_tprintf(_T("%d %d %d \n"), dadosMapaJogo.nLinhas, dadosMapaJogo.nColunas, dadosMapaJogo.tempoAguaComecaFluir);
+	_tprintf(_T("%d %d \n"), dadosMapaJogo.coordenadasOrigemAgua[0], dadosMapaJogo.coordenadasOrigemAgua[1]);
+	_tprintf(_T("%d %d \n"), dadosMapaJogo.coordenadasDestinoAgua[0], dadosMapaJogo.coordenadasDestinoAgua[1]);
 
 	HANDLE hThread = CreateThread(NULL, 0, atualizaMapaJogoParaMonitor, &dadosPartilhaMapaJogo, 0, NULL);
 
@@ -388,6 +273,7 @@ int _tmain(int argc, TCHAR* argv[]) {
 	CloseHandle(dadosPartilhaMapaJogo.newMsg);
 	CloseHandle(dadosPartilhaMapaJogo.hSemaforo);
 	CloseHandle(hThread);
+	CloseHandle(hLibrary);
 
 	return 0;
 }
