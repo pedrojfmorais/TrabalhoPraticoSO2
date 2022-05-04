@@ -20,9 +20,8 @@ void SetColor(int ForgC)
 	return;
 }
 
-void limpaEcra() {
-	system("cls");
-}
+
+void limpaEcra() {system("cls");}
 
 void printTuboOrigemAgua(int i, int j, BOOL temAgua) {
 	if (i % 3 == 0 || i % 3 == 2)
@@ -238,13 +237,18 @@ void desenharMapaJogo(DadosJogo* dadosJogo) {
 		{
 		case 0: 
 			_tprintf(_T("\t"));
-			if (dadosJogo->ganhou) {
+			if (dadosJogo->perdeu) {
+
+				SetColor(CorVermelho);
+				_tprintf(_T("O jogador %d perdeu!"), dadosJogo->idJogador);
+
+			}else if (dadosJogo->ganhou) {
 
 				SetColor(CorVerde);
-				_tprintf(_T("O jogador %d ganhou!\n"), dadosJogo->idJogador);
+				_tprintf(_T("O jogador %d ganhou!"), dadosJogo->idJogador);
 
 			}else if (dadosJogo->jogoPausado){
-				SetColor(CorVermelho);
+				SetColor(CorAmareloClaro);
 				_tprintf(_T("Jogo em pausa!"));
 			}
 			break;
@@ -375,6 +379,7 @@ int _tmain(int argc, TCHAR* argv[]) {
 	CloseHandle(dadosPartilhaJogo.hEvent);
 	CloseHandle(dadosPartilhaJogo.hRWMutex);
 	CloseHandle(dadosPartilhaJogo.hSemaforo);
+	CloseHandle(dadosPartilhaJogo.hEventJogosDecorrer);
 	CloseHandle(hThread);
 	CloseHandle(hLibrary);
 

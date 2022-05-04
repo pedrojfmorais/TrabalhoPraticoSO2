@@ -6,7 +6,7 @@ DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max) {
 }
 
 DWORD getRandomProximaPeca(){
-	return getRandomNumberBetweenMaxAndMin(1, 9); //maior peça + 1
+	return getRandomNumberBetweenMaxAndMin(tuboHorizontal, tuboDireitaParaBaixo + 1); //maior peça + 1
 }
 
 void inicializaJogo(DadosJogo* jogo, DWORD* definicoesJogo) {
@@ -19,6 +19,7 @@ void inicializaJogo(DadosJogo* jogo, DWORD* definicoesJogo) {
 
 	jogo->aJogar = TRUE;
 	jogo->ganhou = FALSE;
+	jogo->perdeu = FALSE;
 	jogo->jogoPausado = FALSE;
 
 	jogo->pontuacao = 0;
@@ -39,7 +40,7 @@ void inicializaJogo(DadosJogo* jogo, DWORD* definicoesJogo) {
 	for (int i = 0; i < jogo->nLinhas; i++) {
 		for (int j = 0; j < jogo->nColunas; j++) {
 			if (i == jogo->coordenadasOrigemAgua[0] && j == jogo->coordenadasOrigemAgua[1])
-				jogo->mapaJogo[i][j] = tuboOrigemAgua;
+				jogo->mapaJogo[i][j] = tuboOrigemAgua * 10;
 			else if (i == jogo->coordenadasDestinoAgua[0] && j == jogo->coordenadasDestinoAgua[1])
 				jogo->mapaJogo[i][j] = tuboDestinoAgua;
 			else
@@ -51,14 +52,23 @@ void inicializaJogo(DadosJogo* jogo, DWORD* definicoesJogo) {
 	jogo->coordenadaAtualAgua[1] = jogo->coordenadasOrigemAgua[1];
 
 	jogo->proximaPeca = getRandomProximaPeca();
-
+	/*
 	//debug
-	jogo->mapaJogo[0][3] = tuboHorizontal*10;
-	jogo->mapaJogo[2][3] = tuboVertical;
-	jogo->mapaJogo[4][3] = tuboCurvaDireitaParaCima;
-	jogo->mapaJogo[0][1] = tuboCurvaEsquerdaParaCima;
-	jogo->mapaJogo[2][1] = tuboDireitaParaBaixo;
-	jogo->mapaJogo[4][1] = tuboEsquerdaParaBaixo;
+	jogo->mapaJogo[0][0] = tuboOrigemAgua * 10;
+
+	jogo->coordenadasOrigemAgua[0] = 0;
+	jogo->coordenadasOrigemAgua[1] = 0;
+
+	jogo->coordenadaAtualAgua[0] = 0;
+	jogo->coordenadaAtualAgua[1] = 0;
+
+	jogo->mapaJogo[0][1] = tuboHorizontal;
+	jogo->mapaJogo[0][2] = tuboEsquerdaParaBaixo;
+	jogo->mapaJogo[1][2] = tuboEsquerdaParaBaixo;
+	jogo->mapaJogo[2][2] = tuboCurvaDireitaParaCima;
+	jogo->mapaJogo[2][3] = tuboHorizontal;
+	jogo->mapaJogo[2][4] = tuboDestinoAgua;
+	*/
 }
 
 void inicializaServidor(int argc, TCHAR* argv[], PartilhaJogo* partilhaJogo, DWORD* definicoesJogo) {
@@ -214,84 +224,189 @@ BOOL WINAPI atualizaMapaJogoParaMonitor(LPVOID p) {
 	return TRUE;
 }
 
-//testar
 BOOL pathfindAguaParaCima(DadosJogo* dadosJogo) {
 
 	if (dadosJogo->coordenadaAtualAgua[0] == 0)
 		return FALSE;
 
-	dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]] *= 10;
 	dadosJogo->coordenadaAtualAgua[0] -= 1;
-	return TRUE;
+
+	switch (dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]])
+	{
+	case tuboDireitaParaBaixo:
+	case tuboEsquerdaParaBaixo:
+	case tuboVertical:
+		dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]] *= 10;
+		return TRUE;
+		break;
+	}
+	
+	return FALSE;
 }
-//testar
 BOOL pathfindAguaParaBaixo(DadosJogo* dadosJogo) {
 
 	if (dadosJogo->coordenadaAtualAgua[0] == dadosJogo->nLinhas-1)
 		return FALSE;
 
-	dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]] *= 10;
 	dadosJogo->coordenadaAtualAgua[0] += 1;
-	return TRUE;
+	
+	switch (dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]])
+	{
+	case tuboCurvaDireitaParaCima:
+	case tuboCurvaEsquerdaParaCima:
+	case tuboVertical:
+		dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]] *= 10;
+		return TRUE;
+		break;
+	}
+	return FALSE;
 }
-//testar
 BOOL pathfindAguaParaEsquerda(DadosJogo* dadosJogo) {
 
 	if (dadosJogo->coordenadaAtualAgua[1] == 0)
 		return FALSE;
 
-	dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]] *= 10;
 	dadosJogo->coordenadaAtualAgua[1] -= 1;
-	return TRUE;
+
+	switch (dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]])
+	{
+	case tuboCurvaDireitaParaCima:
+	case tuboDireitaParaBaixo:
+	case tuboHorizontal:
+		dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]] *= 10;
+		return TRUE;
+		break;
+	}
+	return FALSE;
 }
-//testar
 BOOL pathfindAguaParaDireita(DadosJogo* dadosJogo) {
 
 	if (dadosJogo->coordenadaAtualAgua[1] == dadosJogo->nColunas - 1)
 		return FALSE;
 
-	dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]] *= 10;
 	dadosJogo->coordenadaAtualAgua[1] += 1;
-	return TRUE;
-}
 
-BOOL pathfindAguaJogo(DadosJogo* dadosJogo) {
-
-	//coordenada atual da água no mapa
 	switch (dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]])
 	{
 	case tuboCurvaEsquerdaParaCima:
-		
-		if (dadosJogo->coordenadaAtualAgua[0] != 0 && 
-			dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1] - 1] % 10 > 0)
+	case tuboEsquerdaParaBaixo:
+	case tuboHorizontal:
+		dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]] *= 10;
+		return TRUE;
+		break;
+	case tuboDestinoAgua:
+		dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]] *= 10;
+		dadosJogo->ganhou = TRUE;
+		return TRUE;
+		break;
+	}
+	return FALSE;
+}
+BOOL pathfindAguaJogo(DadosJogo* dadosJogo) {
+
+	//coordenada atual da água no mapa
+	switch (dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]] / 10)
+	{
+	case tuboCurvaEsquerdaParaCima:
+
+		if (dadosJogo->coordenadaAtualAgua[0] != 0 &&
+			dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0] - 1][dadosJogo->coordenadaAtualAgua[1]] / 10 > 0)
+
+			return pathfindAguaParaEsquerda(dadosJogo);
+
+		else if (dadosJogo->coordenadaAtualAgua[1] != 0 &&
+			dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1] - 1] / 10 > 0)
+
+			return pathfindAguaParaCima(dadosJogo);
+		else
+			return FALSE;
+		break;
+
+	case tuboCurvaDireitaParaCima:
+		if (dadosJogo->coordenadaAtualAgua[1] != dadosJogo->nColunas - 1 &&
+			dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1] + 1] / 10 > 0)
 
 			return pathfindAguaParaCima(dadosJogo);
 
-		else if (dadosJogo->coordenadaAtualAgua[1] != 0 && 
-			dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0] - 1][dadosJogo->coordenadaAtualAgua[1]] % 10 > 0)
-			
-			return pathfindAguaParaEsquerda(dadosJogo);
-		
-		break;
-	case tuboCurvaDireitaParaCima:
+		else if (dadosJogo->coordenadaAtualAgua[0] != 0 &&
+			dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0] - 1][dadosJogo->coordenadaAtualAgua[1]] / 10 > 0)
 
-		
+			return pathfindAguaParaDireita(dadosJogo);
+		else
+			return FALSE;
 		break;
+
 	case tuboEsquerdaParaBaixo:
-	case tuboDireitaParaBaixo:
-		break;
-	case tuboHorizontal:
-		break;
-	case tuboVertical:
-		break;
-	case tuboOrigemAgua:
-		break;
-	case tuboDestinoAgua:
-		break;
-	default:
-		break;
-	}
 
+		if (dadosJogo->coordenadaAtualAgua[0] != dadosJogo->nLinhas - 1 &&
+			dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0] + 1][dadosJogo->coordenadaAtualAgua[1]] / 10 > 0)
+
+			return pathfindAguaParaEsquerda(dadosJogo);
+
+		else if (dadosJogo->coordenadaAtualAgua[1] != 0 &&
+			dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1] - 1] / 10 > 0)
+
+			return pathfindAguaParaBaixo(dadosJogo);
+
+		else
+			return FALSE;
+		break;
+
+	case tuboDireitaParaBaixo:
+		if (dadosJogo->coordenadaAtualAgua[1] != dadosJogo->nColunas - 1 &&
+			dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1] + 1] / 10 > 0)
+
+			return pathfindAguaParaBaixo(dadosJogo);
+
+		else if (dadosJogo->coordenadaAtualAgua[0] != dadosJogo->nLinhas - 1 &&
+			dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0] + 1][dadosJogo->coordenadaAtualAgua[1]] / 10 > 0)
+
+			return pathfindAguaParaDireita(dadosJogo);
+		else
+			return FALSE;
+		break;
+
+	case tuboHorizontal:
+		if (dadosJogo->coordenadaAtualAgua[1] != 0 &&
+			dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1] - 1] / 10 > 0)
+
+			return pathfindAguaParaDireita(dadosJogo);
+
+		else if (dadosJogo->coordenadaAtualAgua[1] != dadosJogo->nColunas - 1 &&
+			dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1] + 1] / 10 > 0)
+
+			return pathfindAguaParaEsquerda(dadosJogo);
+	
+		else
+			return FALSE;
+		break;
+
+	case tuboVertical:
+		if (dadosJogo->coordenadaAtualAgua[0] != 0 &&
+			dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0] - 1][dadosJogo->coordenadaAtualAgua[1]] / 10 > 0)
+
+			return pathfindAguaParaBaixo(dadosJogo);
+
+		else if (dadosJogo->coordenadaAtualAgua[0] != dadosJogo->nLinhas - 1 &&
+			dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0] + 1][dadosJogo->coordenadaAtualAgua[1]] / 10 > 0)
+
+			return pathfindAguaParaCima(dadosJogo);
+		else
+			return FALSE;
+		break;
+
+	case tuboOrigemAgua:
+		return pathfindAguaParaDireita(dadosJogo);
+		break;
+
+	case tuboDestinoAgua:
+		dadosJogo->mapaJogo[dadosJogo->coordenadaAtualAgua[0]][dadosJogo->coordenadaAtualAgua[1]] *= 10;
+		dadosJogo->ganhou = TRUE;
+		return TRUE;
+		break;
+
+	}
+	return FALSE;
 }
 
 BOOL WINAPI decorrerJogo(LPVOID p) {
@@ -299,16 +414,16 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 	
 	while (1) {
 
+		WaitForSingleObject(partilhaJogo->hEventJogosDecorrer, INFINITE);
+
 		BOOL sofreuAlteracoes = FALSE;
 
 		for (DWORD i = 0; i < N_JOGADORES; i++)
 		{
-			DadosJogo* dadosJogo;
-
-			if (i == 0)
-				dadosJogo == partilhaJogo->jogador1;
-			else if (i == 1)
-				dadosJogo == partilhaJogo->jogador2;
+			DadosJogo* dadosJogo = partilhaJogo->jogador1;
+			
+			if (i == 1)
+				dadosJogo = partilhaJogo->jogador2;
 
 			if (!dadosJogo->aJogar || dadosJogo->jogoPausado)
 				continue;
@@ -316,7 +431,14 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 			if (dadosJogo->tempoAguaComecaFluir < dadosJogo->tempoDecorrido) {
 				//água avança a cada 2 segundos
 				if ((dadosJogo->tempoDecorrido - dadosJogo->tempoAguaComecaFluir) % 2 == 0) {
-					//pathfind
+
+					if (dadosJogo->ganhou || dadosJogo->perdeu)
+						dadosJogo->aJogar = FALSE;
+
+					if (!pathfindAguaJogo(dadosJogo))
+						dadosJogo->perdeu = TRUE;
+					else
+						dadosJogo->pontuacao += 15;
 				}
 			}
 
@@ -325,6 +447,10 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 		}
 		if(sofreuAlteracoes)
 			ReleaseSemaphore(partilhaJogo->hSemaforo, 1, NULL);
+
+		if(!partilhaJogo->jogador1->aJogar && !partilhaJogo->jogador2->aJogar)
+			ResetEvent(partilhaJogo->hEvent);
+
 		Sleep(1000);
 	}
 }
@@ -385,6 +511,7 @@ int _tmain(int argc, TCHAR* argv[]) {
 	_tprintf(_T("%d %d \n"), partilhaJogo.jogador2->coordenadasDestinoAgua[0], partilhaJogo.jogador2->coordenadasDestinoAgua[1]);
 
 	HANDLE hThread = CreateThread(NULL, 0, atualizaMapaJogoParaMonitor, &partilhaJogo, 0, NULL);
+	HANDLE hThreadDecorreJogo = CreateThread(NULL, 0, decorrerJogo, &partilhaJogo, 0, NULL);
 
 	TCHAR comandoInserido[TAM];
 
@@ -395,6 +522,8 @@ int _tmain(int argc, TCHAR* argv[]) {
 			partilhaJogo.threadMustContinue = 0;
 			ReleaseSemaphore(partilhaJogo.hSemaforo, 1, NULL);
 			break;
+		}else if (_tcscmp(comandoInserido, _T("start")) == 0) {
+			SetEvent(partilhaJogo.hEventJogosDecorrer);
 		}
 
 		ReleaseSemaphore(partilhaJogo.hSemaforo, 1, NULL);
@@ -409,6 +538,7 @@ int _tmain(int argc, TCHAR* argv[]) {
 	CloseHandle(partilhaJogo.hRWMutex);
 	CloseHandle(partilhaJogo.hEvent);
 	CloseHandle(partilhaJogo.hSemaforo);
+	CloseHandle(partilhaJogo.hEventJogosDecorrer);
 	CloseHandle(hThread);
 	CloseHandle(hLibrary);
 

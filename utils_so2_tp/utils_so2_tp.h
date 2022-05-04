@@ -16,6 +16,7 @@
 #define SEMAPHORE_NAME _T("SEMAFORO_PartilhaMapaJogo")
 #define MUTEX_NAME_PARTILHA_MAPA_JOGO _T("MutexAtualizarMapaJogo")
 #define EVENT_NAME_PARTILHA_MAPA_JOGO _T("NovaAtualizacaoMapaJogo")
+#define EVENT_NAME_JOGOS_A_DECORRER _T("ExistemJogosDecorrer")
 #define MSGTEXT_SZ 1000
 
 #define MSGBUFSIZE sizeof(DadosJogo)
@@ -44,8 +45,10 @@ typedef struct {
 	DWORD idJogador;
 
 	BOOL aJogar;
-	BOOL ganhou;
 	BOOL jogoPausado;
+
+	BOOL ganhou;
+	BOOL perdeu;
 
 	DWORD pontuacao;
 
@@ -72,6 +75,7 @@ typedef struct {
 	DadosJogo* jogador2;
 	int threadMustContinue;
 	HANDLE hEvent;
+	HANDLE hEventJogosDecorrer;
 	HANDLE hRWMutex;
 	HANDLE hSemaforo;
 } PartilhaJogo;

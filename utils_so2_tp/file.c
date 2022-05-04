@@ -113,6 +113,24 @@ BOOL initMemAndSync(PartilhaJogo* partilhaJogo) {
 		CloseHandle(partilhaJogo->hRWMutex);
 		return FALSE;
 	}
+
+	partilhaJogo->hEventJogosDecorrer = CreateEvent(
+		NULL,
+		TRUE,
+		FALSE,
+		EVENT_NAME_JOGOS_A_DECORRER
+	);
+
+	if (partilhaJogo->hEventJogosDecorrer == NULL) {
+		_tprintf(_T("ERROR: CreateEvent (%d)\n"), GetLastError());
+		UnmapViewOfFile(partilhaJogo->jogador1);
+		CloseHandle(partilhaJogo->hMapFileJogador1);
+		UnmapViewOfFile(partilhaJogo->jogador2);
+		CloseHandle(partilhaJogo->hMapFileJogador2);
+		CloseHandle(partilhaJogo->hRWMutex);
+		CloseHandle(partilhaJogo->hEvent);
+		return FALSE;
+	}
 	partilhaJogo->hSemaforo = CreateSemaphore(
 		NULL,
 		0,
@@ -127,6 +145,7 @@ BOOL initMemAndSync(PartilhaJogo* partilhaJogo) {
 		CloseHandle(partilhaJogo->hMapFileJogador2);
 		CloseHandle(partilhaJogo->hRWMutex);
 		CloseHandle(partilhaJogo->hEvent);
+		CloseHandle(partilhaJogo->hEventJogosDecorrer);
 		return FALSE;
 	}
 }
