@@ -1,9 +1,6 @@
 ﻿
 #include "..\\utils_so2_tp\utils_so2_tp.h"
 
-typedef BOOL(*PFUNC_TypeBool_NoArguments) ();
-typedef BOOL(*PFUNC_TypeBool_PointerPartilhaMapaJogo) (PartilhaMapaJogo*);
-
 // Retirado da internet "https://www.codewithc.com/change-text-color-in-codeblocks-console-window/"
 void SetColor(int ForgC)
 {
@@ -23,39 +20,67 @@ void SetColor(int ForgC)
 	return;
 }
 
-void desenharMapaJogo(DadosMapaJogo* dadosMapaJogo) {
+void limpaEcra() {
+	system("cls");
+}
+
+void desenharMapaJogo(DadosJogo* dadosJogo) {
 
 	_tprintf(_T("\n\n\n"));
-	for (int i = 0; i < dadosMapaJogo->nLinhas * 3; i++)
+
+	SetColor(CorVerde);
+	if (dadosJogo->ganhou) {
+		_tprintf(_T("O jogador %d ganhou!\n"), dadosJogo->idJogador);
+		SetColor(CorBranco);
+		return;
+	}
+
+	SetColor(CorVermelho);
+	if (dadosJogo->jogoPausado)
+		_tprintf(_T("Jogo em pausa!\n"));
+
+	SetColor(CorBranco);
+	_tprintf(_T("Jogador %d\n"), dadosJogo->idJogador);
+	_tprintf(_T("Pontuação: %d\n"), dadosJogo->pontuacao);
+	_tprintf(_T("Tempo decorrido: %d segundos\n"), dadosJogo->tempoDecorrido);
+
+	SetColor(CorBranco);
+	for (int i = 0; i < dadosJogo->nLinhas * 3; i++)
 	{
 		if (i == 0) {
 			_tprintf(_T("  "));
 
-			for (int j = 0; j < dadosMapaJogo->nColunas * 3; j++)
+			SetColor(CorVerde);
+			for (int j = 0; j < dadosJogo->nColunas * 3; j++)
 				if(j%3 == 1)
 					_tprintf(_T("%d"), (j/3)+1);
 				else
 					_tprintf(_T(" "));
 			_tprintf(_T("\n "));
 
-			for (int j = 0; j < (dadosMapaJogo->nColunas * 3) + 2; j++)
+			SetColor(CorSalmao);
+			for (int j = 0; j < (dadosJogo->nColunas * 3) + 2; j++)
 				_tprintf(_T("-"));
+
 			_tprintf(_T("\n"));
 		}
 
-		for (int j = 0; j < dadosMapaJogo->nColunas * 3; j++)
+		for (int j = 0; j < dadosJogo->nColunas * 3; j++)
 		{
 			if (j == 0) {
+				SetColor(CorVerde);
 				if (i % 3 == 1)
 					_tprintf(_T("%d"), (i / 3) + 1);
 				else
 					_tprintf(_T(" "));
+
+				SetColor(CorSalmao);
 				_tprintf(_T("|"));
 			}
 
-			SetColor(CorCinzento);
+			SetColor(CorBranco);
 
-			int tipoTubo = dadosMapaJogo->mapaJogo[i / 3][j / 3];
+			int tipoTubo = dadosJogo->mapaJogo[i / 3][j / 3];
 			BOOL temAgua = FALSE;
 
 			if (tipoTubo / 10 > 0) {
@@ -63,6 +88,7 @@ void desenharMapaJogo(DadosMapaJogo* dadosMapaJogo) {
 				temAgua = TRUE;
 			}
 
+			SetColor(CorAmareloClaro);
 			switch (tipoTubo)
 			{
 			case tuboVazio:
@@ -80,7 +106,7 @@ void desenharMapaJogo(DadosMapaJogo* dadosMapaJogo) {
 						if (temAgua) {
 							SetColor(CorAzulClaro);
 							_tprintf(_T("█"));
-							SetColor(CorCinzento);
+							SetColor(CorAmareloClaro);
 						}else
 							_tprintf(_T(" "));
 					}
@@ -95,7 +121,7 @@ void desenharMapaJogo(DadosMapaJogo* dadosMapaJogo) {
 						if (temAgua) {
 							SetColor(CorAzulClaro);
 							_tprintf(_T("█"));
-							SetColor(CorCinzento);
+							SetColor(CorAmareloClaro);
 						}
 						else
 							_tprintf(_T(" "));
@@ -115,7 +141,7 @@ void desenharMapaJogo(DadosMapaJogo* dadosMapaJogo) {
 					if (temAgua) {
 						SetColor(CorAzulClaro);
 						_tprintf(_T("█"));
-						SetColor(CorCinzento);
+						SetColor(CorAmareloClaro);
 					}
 					else
 						_tprintf(_T(" "));
@@ -129,7 +155,7 @@ void desenharMapaJogo(DadosMapaJogo* dadosMapaJogo) {
 					if (temAgua) {
 						SetColor(CorAzulClaro);
 						_tprintf(_T("█"));
-						SetColor(CorCinzento);
+						SetColor(CorAmareloClaro);
 					}
 					else
 						_tprintf(_T(" "));
@@ -143,7 +169,7 @@ void desenharMapaJogo(DadosMapaJogo* dadosMapaJogo) {
 					if (temAgua) {
 						SetColor(CorAzulClaro);
 						_tprintf(_T("█"));
-						SetColor(CorCinzento);
+						SetColor(CorAmareloClaro);
 					}
 					else
 						_tprintf(_T(" "));
@@ -158,7 +184,7 @@ void desenharMapaJogo(DadosMapaJogo* dadosMapaJogo) {
 					if (temAgua) {
 						SetColor(CorAzulClaro);
 						_tprintf(_T("█"));
-						SetColor(CorCinzento);
+						SetColor(CorAmareloClaro);
 					}
 					else
 						_tprintf(_T(" "));
@@ -173,7 +199,7 @@ void desenharMapaJogo(DadosMapaJogo* dadosMapaJogo) {
 					if (temAgua) {
 						SetColor(CorAzulClaro);
 						_tprintf(_T("█"));
-						SetColor(CorCinzento);
+						SetColor(CorAmareloClaro);
 					}
 					else
 						_tprintf(_T(" "));
@@ -188,7 +214,7 @@ void desenharMapaJogo(DadosMapaJogo* dadosMapaJogo) {
 					if (temAgua) {
 						SetColor(CorAzulClaro);
 						_tprintf(_T("█"));
-						SetColor(CorCinzento);
+						SetColor(CorAmareloClaro);
 					}
 					else
 						_tprintf(_T(" "));
@@ -200,35 +226,42 @@ void desenharMapaJogo(DadosMapaJogo* dadosMapaJogo) {
 			}
 			
 		}
-		SetColor(CorBranco);
+		SetColor(CorSalmao);
 		_tprintf(_T("|\n"));
-		if (i == (dadosMapaJogo->nLinhas * 3) - 1) {
-			for (int i = 0; i < (dadosMapaJogo->nColunas * 3) + 2; i++) {
+		if (i == (dadosJogo->nLinhas * 3) - 1) {
+
+			for (int i = 0; i < (dadosJogo->nColunas * 3) + 2; i++) {
 				if (i == 0)
 					_tprintf(_T(" "));
+
 				_tprintf(_T("-"));
 			}
 			_tprintf(_T("\n"));
 		}
+		SetColor(CorBranco);
 	}
 }
 
 BOOL WINAPI recebeMapaJogoDoServidor(LPVOID p) {
 
-	PartilhaMapaJogo* pcd = (PartilhaMapaJogo*)p;
-	DadosMapaJogo msg;
+	PartilhaJogo* partilhaJogo = (PartilhaJogo*) p;
+	DadosJogo msg;
 
 	while (1) {
-		WaitForSingleObject(pcd->newMsg, INFINITE);
-		if (!pcd->threadMustContinue)
+		WaitForSingleObject(partilhaJogo->hEvent, INFINITE);
+		if (!partilhaJogo->threadMustContinue)
 			return 0;
 
-		WaitForSingleObject(pcd->hRWMutex, INFINITE);
-		CopyMemory(&msg, pcd->mapaJogo, sizeof(DadosMapaJogo));
+		WaitForSingleObject(partilhaJogo->hRWMutex, INFINITE);
 
-		ReleaseMutex(pcd->hRWMutex);
+		limpaEcra();
 
-		desenharMapaJogo(pcd->mapaJogo);
+		if(partilhaJogo->jogador1->aJogar)
+			desenharMapaJogo(partilhaJogo->jogador1);
+		if (partilhaJogo->jogador2->aJogar)
+			desenharMapaJogo(partilhaJogo->jogador2);
+
+		ReleaseMutex(partilhaJogo->hRWMutex);
 
 		Sleep(1000);
 	}
@@ -272,19 +305,22 @@ int _tmain(int argc, TCHAR* argv[]) {
 	PFUNC_TypeBool_PointerPartilhaMapaJogo initMemAndSync;
 	initMemAndSync = (PFUNC_TypeBool_PointerPartilhaMapaJogo)GetProcAddress(hLibrary, "initMemAndSync");
 
-	PartilhaMapaJogo dadosPartilhaMapaJogo;
+	PartilhaJogo dadosPartilhaJogo;
 
-	if (!initMemAndSync(&dadosPartilhaMapaJogo))
+	if (!initMemAndSync(&dadosPartilhaJogo))
 		return 0;
 
-	CloseHandle(dadosPartilhaMapaJogo.hMapFile);
-	HANDLE hThread = CreateThread(NULL, 0, recebeMapaJogoDoServidor, &dadosPartilhaMapaJogo, 0, NULL);
+	HANDLE hThread = CreateThread(NULL, 0, recebeMapaJogoDoServidor, &dadosPartilhaJogo, 0, NULL);
 
 	WaitForSingleObject(hThread, INFINITE);
-	UnmapViewOfFile(dadosPartilhaMapaJogo.mapaJogo);
-	CloseHandle(dadosPartilhaMapaJogo.hMapFile);
-	CloseHandle(dadosPartilhaMapaJogo.hRWMutex);
-	CloseHandle(dadosPartilhaMapaJogo.newMsg);
+	UnmapViewOfFile(dadosPartilhaJogo.jogador1);
+	CloseHandle(dadosPartilhaJogo.hMapFileJogador1);
+	UnmapViewOfFile(dadosPartilhaJogo.jogador2);
+	CloseHandle(dadosPartilhaJogo.hMapFileJogador2);
+	CloseHandle(dadosPartilhaJogo.hRWMutex);
+	CloseHandle(dadosPartilhaJogo.hEvent);
+	CloseHandle(dadosPartilhaJogo.hRWMutex);
+	CloseHandle(dadosPartilhaJogo.hSemaforo);
 	CloseHandle(hThread);
 	CloseHandle(hLibrary);
 

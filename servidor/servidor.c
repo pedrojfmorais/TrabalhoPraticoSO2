@@ -1,37 +1,81 @@
 ﻿
 #include "..\\utils_so2_tp\utils_so2_tp.h"
 
-typedef BOOL(*PFUNC_TypeBool_NoArguments) ();
-typedef BOOL(*PFUNC_TypeBool_PointerPartilhaMapaJogo) (PartilhaMapaJogo*);
-
 DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max) {
 	return (rand() % (max - min)) + min;
 }
 
-void inicializaServidor(int argc, TCHAR* argv[], DadosMapaJogo *dadosMapaJogo) {
+void inicializaJogo(DadosJogo* jogo, DWORD* definicoesJogo) {
+
+	jogo->nLinhas = definicoesJogo[0];
+	jogo->nColunas = definicoesJogo[1];
+
+	jogo->tempoAguaComecaFluir = definicoesJogo[2];
+	jogo->tempoDecorrido = 0;
+
+	jogo->aJogar = TRUE;
+	jogo->ganhou = FALSE;
+	jogo->jogoPausado = FALSE;
+
+	jogo->pontuacao = 0;
+
+	jogo->coordenadasOrigemAgua[0] = getRandomNumberBetweenMaxAndMin(0, jogo->nLinhas);
+	jogo->coordenadasOrigemAgua[1] = 0;
+
+	jogo->coordenadasDestinoAgua[0] = getRandomNumberBetweenMaxAndMin(0, jogo->nLinhas);
+	jogo->coordenadasDestinoAgua[1] = jogo->nColunas - 1;
+
+	//Verifica se a origem e destino da àgua estão em quadrantes diagonais opostos
+	if (jogo->coordenadasOrigemAgua[0] > (jogo->nLinhas / 2) && jogo->coordenadasDestinoAgua[0] > (jogo->nLinhas / 2))
+		jogo->coordenadasDestinoAgua[0] -= jogo->nLinhas / 2;
+
+	else if (jogo->coordenadasOrigemAgua[0] < (jogo->nLinhas / 2) && jogo->coordenadasDestinoAgua[0] < (jogo->nLinhas / 2))
+		jogo->coordenadasDestinoAgua[0] += jogo->nLinhas / 2;
+
+	for (int i = 0; i < jogo->nLinhas; i++) {
+		for (int j = 0; j < jogo->nColunas; j++) {
+			if (i == jogo->coordenadasOrigemAgua[0] && j == jogo->coordenadasOrigemAgua[1])
+				jogo->mapaJogo[i][j] = tuboOrigemAgua;
+			else if (i == jogo->coordenadasDestinoAgua[0] && j == jogo->coordenadasDestinoAgua[1])
+				jogo->mapaJogo[i][j] = tuboDestinoAgua;
+			else
+				jogo->mapaJogo[i][j] = tuboVazio;
+		}
+	}
+
+	jogo->coordenadaAtualAgua[0] = jogo->coordenadasOrigemAgua[0];
+	jogo->coordenadaAtualAgua[1] = jogo->coordenadasOrigemAgua[1];
+
+	//debug
+	jogo->mapaJogo[0][3] = tuboHorizontal*10;
+	jogo->mapaJogo[2][3] = tuboVertical;
+	jogo->mapaJogo[4][3] = tuboCurvaDireitaParaCima;
+	jogo->mapaJogo[0][1] = tuboCurvaEsquerdaParaCima;
+	jogo->mapaJogo[2][1] = tuboDireitaParaBaixo;
+	jogo->mapaJogo[4][1] = tuboEsquerdaParaBaixo;
+}
+
+void inicializaServidor(int argc, TCHAR* argv[], PartilhaJogo* partilhaJogo, DWORD* definicoesJogo) {
 
 	TCHAR nomeChaves[3][TAM] = { _T("nLinhas"), _T("nColunas"), _T("tempoAguaComecaFluir") };
-	DWORD val[3] = { 0 };
 
 	if (argc == 1) {
 		//Lê no registry
-
-		if (!lerDoRegistryDadosMapaJogo(nomeChaves, val))
+		if (!lerDoRegistryDadosMapaJogo(nomeChaves, definicoesJogo))
 			exit(1);
 
 	}else if(argc == 4) {
 		//Guarda no registry
-
 		for (DWORD i = 0; i < 3; i++)
-			val[i] = wcstod(argv[i+1], _T('\0'));
+			definicoesJogo[i] = wcstod(argv[i+1], _T('\0'));
 
 		for (DWORD i = 0; i < 2; i++)
-			if (val[i] > 20)
-				val[i] = 20;
-			else if (val[i] < 5)
-				val[i] = 5;
+			if (definicoesJogo[i] > 20)
+				definicoesJogo[i] = 20;
+			else if (definicoesJogo[i] < 5)
+				definicoesJogo[i] = 5;
 
-		if(!guardaNoRegistryDadosMapaJogo(nomeChaves, val))
+		if(!guardaNoRegistryDadosMapaJogo(nomeChaves, definicoesJogo))
 			_tprintf(_T("Não foi possivel guardar os valores no Registry!"));
 
 	}
@@ -40,43 +84,12 @@ void inicializaServidor(int argc, TCHAR* argv[], DadosMapaJogo *dadosMapaJogo) {
 		exit(1);
 	}
 
-	dadosMapaJogo->nLinhas = val[0];
-	dadosMapaJogo->nColunas = val[1];
-	dadosMapaJogo->tempoAguaComecaFluir = val[2];
+	inicializaJogo(partilhaJogo->jogador1, definicoesJogo);
+	partilhaJogo->jogador1->idJogador = 1;
+	partilhaJogo->jogador1->ganhou = TRUE;
+	inicializaJogo(partilhaJogo->jogador2, definicoesJogo);
+	partilhaJogo->jogador2->idJogador = 2;
 
-	srand((unsigned int)time(NULL));
-
-	dadosMapaJogo->coordenadasOrigemAgua[0] = getRandomNumberBetweenMaxAndMin(0, dadosMapaJogo->nLinhas);
-	dadosMapaJogo->coordenadasOrigemAgua[1] = 0;
-
-	dadosMapaJogo->coordenadasDestinoAgua[0] = getRandomNumberBetweenMaxAndMin(0, dadosMapaJogo->nLinhas);
-	dadosMapaJogo->coordenadasDestinoAgua[1] = dadosMapaJogo->nColunas-1;
-
-	//Verifica se a origem e destino da àgua estão em quadrantes diagonais opostos
-	if (dadosMapaJogo->coordenadasOrigemAgua[0] > (dadosMapaJogo->nLinhas / 2) && dadosMapaJogo->coordenadasDestinoAgua[0] > (dadosMapaJogo->nLinhas / 2))
-		dadosMapaJogo->coordenadasDestinoAgua[0] -= dadosMapaJogo->nLinhas / 2;
-		
-	else if (dadosMapaJogo->coordenadasOrigemAgua[0] < (dadosMapaJogo->nLinhas / 2) && dadosMapaJogo->coordenadasDestinoAgua[0] < (dadosMapaJogo->nLinhas / 2))
-		dadosMapaJogo->coordenadasDestinoAgua[0] += dadosMapaJogo->nLinhas / 2;
-
-	for (int i = 0; i < dadosMapaJogo->nLinhas; i++) {
-		for (int j = 0; j < dadosMapaJogo->nColunas; j++) {
-			if (i == dadosMapaJogo->coordenadasOrigemAgua[0] && j == dadosMapaJogo->coordenadasOrigemAgua[1])
-				dadosMapaJogo->mapaJogo[i][j] = tuboOrigemAgua;
-			else if (i == dadosMapaJogo->coordenadasDestinoAgua[0] && j == dadosMapaJogo->coordenadasDestinoAgua[1])
-				dadosMapaJogo->mapaJogo[i][j] = tuboDestinoAgua;
-			else
-				dadosMapaJogo->mapaJogo[i][j] = tuboVazio;
-		}
-	}
-
-	//debug
-	dadosMapaJogo->mapaJogo[0][3] = tuboHorizontal;
-	dadosMapaJogo->mapaJogo[2][3] = tuboVertical;
-	dadosMapaJogo->mapaJogo[4][3] = tuboCurvaDireitaParaCima;
-	dadosMapaJogo->mapaJogo[0][1] = tuboCurvaEsquerdaParaCima;
-	dadosMapaJogo->mapaJogo[2][1] = tuboDireitaParaBaixo;
-	dadosMapaJogo->mapaJogo[4][1] = tuboEsquerdaParaBaixo;
 }
 
 BOOL lerDoRegistryDadosMapaJogo(TCHAR nomeChaves[3][TAM], DWORD val[3]) {
@@ -175,19 +188,19 @@ BOOL guardaNoRegistryDadosMapaJogo(TCHAR nomeChaves[3][TAM], DWORD val[3]) {
 
 BOOL WINAPI atualizaMapaJogoParaMonitor(LPVOID p) {
 
-	PartilhaMapaJogo* pcd = (PartilhaMapaJogo*)p;
+	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
 
 	while (1) {
 
 
-		WaitForSingleObject(pcd->hSemaforo, INFINITE);
+		WaitForSingleObject(partilhaJogo->hSemaforo, INFINITE);
 
-		if (!pcd->threadMustContinue)
+		if (!partilhaJogo->threadMustContinue)
 			break;
 
-		SetEvent(pcd->newMsg);
+		SetEvent(partilhaJogo->hEvent);
 		Sleep(500);
-		ResetEvent(pcd->newMsg);
+		ResetEvent(partilhaJogo->hEvent);
 
 	}
 	return TRUE;
@@ -225,26 +238,31 @@ int _tmain(int argc, TCHAR* argv[]) {
 	_setmode(_fileno(stderr), _O_WTEXT);
 #endif 
 
+	srand((unsigned int)time(NULL));
+
 	HINSTANCE hLibrary = verificacoesIniciais();
 
 	PFUNC_TypeBool_PointerPartilhaMapaJogo initMemAndSync;
 	initMemAndSync = (PFUNC_TypeBool_PointerPartilhaMapaJogo)GetProcAddress(hLibrary, "initMemAndSync");
 
-	PartilhaMapaJogo dadosPartilhaMapaJogo;
+	PartilhaJogo partilhaJogo;
 
-	if (!initMemAndSync(&dadosPartilhaMapaJogo))
+	if (!initMemAndSync(&partilhaJogo))
 		return 1;
 
-	DadosMapaJogo dadosMapaJogo;
+	DWORD definicoesJogo[3];
+	inicializaServidor(argc, argv, &partilhaJogo, definicoesJogo);
 
-	inicializaServidor(argc, argv, &dadosMapaJogo);
+	//debug
+	_tprintf(_T("%d %d %d \n"), partilhaJogo.jogador1->nLinhas, partilhaJogo.jogador1->nColunas, partilhaJogo.jogador1->tempoAguaComecaFluir);
+	_tprintf(_T("%d %d \n"), partilhaJogo.jogador1->coordenadasOrigemAgua[0], partilhaJogo.jogador1->coordenadasOrigemAgua[1]);
+	_tprintf(_T("%d %d \n"), partilhaJogo.jogador1->coordenadasDestinoAgua[0], partilhaJogo.jogador1->coordenadasDestinoAgua[1]);
+	
+	_tprintf(_T("%d %d %d \n"), partilhaJogo.jogador2->nLinhas, partilhaJogo.jogador2->nColunas, partilhaJogo.jogador2->tempoAguaComecaFluir);
+	_tprintf(_T("%d %d \n"), partilhaJogo.jogador2->coordenadasOrigemAgua[0], partilhaJogo.jogador2->coordenadasOrigemAgua[1]);
+	_tprintf(_T("%d %d \n"), partilhaJogo.jogador2->coordenadasDestinoAgua[0], partilhaJogo.jogador2->coordenadasDestinoAgua[1]);
 
-	//debig
-	_tprintf(_T("%d %d %d \n"), dadosMapaJogo.nLinhas, dadosMapaJogo.nColunas, dadosMapaJogo.tempoAguaComecaFluir);
-	_tprintf(_T("%d %d \n"), dadosMapaJogo.coordenadasOrigemAgua[0], dadosMapaJogo.coordenadasOrigemAgua[1]);
-	_tprintf(_T("%d %d \n"), dadosMapaJogo.coordenadasDestinoAgua[0], dadosMapaJogo.coordenadasDestinoAgua[1]);
-
-	HANDLE hThread = CreateThread(NULL, 0, atualizaMapaJogoParaMonitor, &dadosPartilhaMapaJogo, 0, NULL);
+	HANDLE hThread = CreateThread(NULL, 0, atualizaMapaJogoParaMonitor, &partilhaJogo, 0, NULL);
 
 	TCHAR comandoInserido[TAM];
 
@@ -252,26 +270,23 @@ int _tmain(int argc, TCHAR* argv[]) {
 		_getts_s(comandoInserido, TAM);
 
 		if (_tcscmp(comandoInserido, _T("exit")) == 0) {
-			dadosPartilhaMapaJogo.threadMustContinue = 0;
-			ReleaseSemaphore(dadosPartilhaMapaJogo.hSemaforo, 1, NULL);
+			partilhaJogo.threadMustContinue = 0;
+			ReleaseSemaphore(partilhaJogo.hSemaforo, 1, NULL);
 			break;
 		}
 
-		WaitForSingleObject(dadosPartilhaMapaJogo.hRWMutex, INFINITE);
-		CopyMemory(dadosPartilhaMapaJogo.mapaJogo, &dadosMapaJogo, sizeof(DadosMapaJogo));
-		ReleaseMutex(dadosPartilhaMapaJogo.hRWMutex);
-
-
-		ReleaseSemaphore(dadosPartilhaMapaJogo.hSemaforo, 1, NULL);
+		ReleaseSemaphore(partilhaJogo.hSemaforo, 1, NULL);
 	}
 
 	WaitForSingleObject(hThread, INFINITE);
 
-	UnmapViewOfFile(dadosPartilhaMapaJogo.mapaJogo);
-	CloseHandle(dadosPartilhaMapaJogo.hMapFile);
-	CloseHandle(dadosPartilhaMapaJogo.hRWMutex);
-	CloseHandle(dadosPartilhaMapaJogo.newMsg);
-	CloseHandle(dadosPartilhaMapaJogo.hSemaforo);
+	UnmapViewOfFile(partilhaJogo.jogador1);
+	CloseHandle(partilhaJogo.hMapFileJogador1);
+	UnmapViewOfFile(partilhaJogo.jogador2);
+	CloseHandle(partilhaJogo.hMapFileJogador2);
+	CloseHandle(partilhaJogo.hRWMutex);
+	CloseHandle(partilhaJogo.hEvent);
+	CloseHandle(partilhaJogo.hSemaforo);
 	CloseHandle(hThread);
 	CloseHandle(hLibrary);
 

@@ -18,24 +18,24 @@ BOOL verificaServidorJaEstaCorrer() {
 	return FALSE;
 }
 
-BOOL initMemAndSync(PartilhaMapaJogo* cdata) {
+BOOL initMemAndSync(PartilhaJogo* partilhaJogo) {
 
-	cdata->hMapFile = CreateFileMapping(
+	partilhaJogo->hMapFileJogador1 = CreateFileMapping(
 		INVALID_HANDLE_VALUE,
 		NULL,
 		PAGE_READWRITE,
 		0,
 		MSGBUFSIZE,
-		SHM_NAME
+		SHM_NAME_JOGADOR1
 	);
 
-	if (cdata->hMapFile == NULL) {
+	if (partilhaJogo->hMapFileJogador1 == NULL) {
 		_tprintf(_T("ERROR: CreateFileMapping (%d)\n"), GetLastError());
 		return FALSE;
 	}
 
-	cdata->mapaJogo = (DadosMapaJogo*)MapViewOfFile(
-		cdata->hMapFile,
+	partilhaJogo->jogador1 = (DadosJogo*)MapViewOfFile(
+		partilhaJogo->hMapFileJogador1,
 		FILE_MAP_ALL_ACCESS,
 		0,
 		0,
@@ -43,51 +43,90 @@ BOOL initMemAndSync(PartilhaMapaJogo* cdata) {
 	);
 
 
-	if (cdata->hMapFile == NULL) {
+	if (partilhaJogo->jogador1 == NULL) {
 		_tprintf(_T("ERROR: MapViewOfFile (%d)\n"), GetLastError());
-		CloseHandle(cdata->hMapFile);
+		CloseHandle(partilhaJogo->hMapFileJogador1);
 		return FALSE;
 	}
 
-	cdata->hRWMutex = CreateMutex(
+	partilhaJogo->hMapFileJogador2 = CreateFileMapping(
+		INVALID_HANDLE_VALUE,
+		NULL,
+		PAGE_READWRITE,
+		0,
+		MSGBUFSIZE,
+		SHM_NAME_JOGADOR2
+	);
+
+	if (partilhaJogo->hMapFileJogador2 == NULL) {
+		_tprintf(_T("ERROR: CreateFileMapping (%d)\n"), GetLastError());
+		UnmapViewOfFile(partilhaJogo->jogador1);
+		CloseHandle(partilhaJogo->hMapFileJogador1);
+		return FALSE;
+	}
+
+	partilhaJogo->jogador2 = (DadosJogo*)MapViewOfFile(
+		partilhaJogo->hMapFileJogador2,
+		FILE_MAP_ALL_ACCESS,
+		0,
+		0,
+		MSGBUFSIZE
+	);
+
+
+	if (partilhaJogo->jogador2 == NULL) {
+		_tprintf(_T("ERROR: MapViewOfFile (%d)\n"), GetLastError());
+		CloseHandle(partilhaJogo->hMapFileJogador2);
+		UnmapViewOfFile(partilhaJogo->jogador1);
+		CloseHandle(partilhaJogo->hMapFileJogador1);
+		return FALSE;
+	}
+
+	partilhaJogo->hRWMutex = CreateMutex(
 		NULL,
 		FALSE,
 		MUTEX_NAME_PARTILHA_MAPA_JOGO
 	);
 
-	if (cdata->hRWMutex == NULL) {
+	if (partilhaJogo->hRWMutex == NULL) {
 		_tprintf(_T("ERROR: CreateMutex (%d)\n"), GetLastError());
-		UnmapViewOfFile(cdata->mapaJogo);
-		CloseHandle(cdata->hMapFile);
+		UnmapViewOfFile(partilhaJogo->jogador1);
+		CloseHandle(partilhaJogo->hMapFileJogador1);
+		UnmapViewOfFile(partilhaJogo->jogador2);
+		CloseHandle(partilhaJogo->hMapFileJogador2);
 		return FALSE;
 	}
 
-	cdata->newMsg = CreateEvent(
+	partilhaJogo->hEvent = CreateEvent(
 		NULL,
 		TRUE,
 		FALSE,
 		EVENT_NAME_PARTILHA_MAPA_JOGO
 	);
 
-	if (cdata->newMsg == NULL) {
+	if (partilhaJogo->hEvent == NULL) {
 		_tprintf(_T("ERROR: CreateEvent (%d)\n"), GetLastError());
-		UnmapViewOfFile(cdata->mapaJogo);
-		CloseHandle(cdata->hMapFile);
-		CloseHandle(cdata->hRWMutex);
+		UnmapViewOfFile(partilhaJogo->jogador1);
+		CloseHandle(partilhaJogo->hMapFileJogador1);
+		UnmapViewOfFile(partilhaJogo->jogador2);
+		CloseHandle(partilhaJogo->hMapFileJogador2);
+		CloseHandle(partilhaJogo->hRWMutex);
 		return FALSE;
 	}
-	cdata->hSemaforo = CreateSemaphore(
+	partilhaJogo->hSemaforo = CreateSemaphore(
 		NULL,
 		0,
 		1,
 		SEMAPHORE_NAME
 	);
-	if (cdata->hSemaforo == NULL) {
+	if (partilhaJogo->hSemaforo == NULL) {
 		_tprintf(_T("ERROR: CreateSemaphore (%d)\n"), GetLastError());
-		UnmapViewOfFile(cdata->mapaJogo);
-		CloseHandle(cdata->hMapFile);
-		CloseHandle(cdata->hRWMutex);
-		CloseHandle(cdata->newMsg);
+		UnmapViewOfFile(partilhaJogo->jogador1);
+		CloseHandle(partilhaJogo->hMapFileJogador1);
+		UnmapViewOfFile(partilhaJogo->jogador2);
+		CloseHandle(partilhaJogo->hMapFileJogador2);
+		CloseHandle(partilhaJogo->hRWMutex);
+		CloseHandle(partilhaJogo->hEvent);
 		return FALSE;
 	}
 }

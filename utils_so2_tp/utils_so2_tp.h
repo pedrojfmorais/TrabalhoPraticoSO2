@@ -10,13 +10,14 @@
 #define caminhoRegistry _T("software\\so2\\tp\\")
 
 //memória partilhada para o monitor
-#define SHM_NAME _T("memoriaPartilhaMapaJogo")
+#define SHM_NAME_JOGADOR1 _T("memoriaPartilhaJogador1")
+#define SHM_NAME_JOGADOR2 _T("memoriaPartilhaJogador2")
 #define SEMAPHORE_NAME _T("SEMAFORO_PartilhaMapaJogo")
 #define MUTEX_NAME_PARTILHA_MAPA_JOGO _T("MutexAtualizarMapaJogo")
 #define EVENT_NAME_PARTILHA_MAPA_JOGO _T("NovaAtualizacaoMapaJogo")
 #define MSGTEXT_SZ 1000
 
-#define MSGBUFSIZE sizeof(DadosMapaJogo)
+#define MSGBUFSIZE sizeof(DadosJogo)
 
 // Um dos tubos multiplicado por 10 significa que tem água, exceto tuboVazio
 #define tuboVazio 0
@@ -30,24 +31,47 @@
 #define tuboDireitaParaBaixo 8
 
 // Cores para a consola
+#define CorVermelho 4
 #define CorBranco 7
-#define CorCinzento 14
+#define CorVerde 10
 #define CorAzulClaro 11
+#define CorSalmao 12
+#define CorAmareloClaro 14
 
 typedef struct {
+
+	DWORD idJogador;
+
+	BOOL aJogar;
+	BOOL ganhou;
+	BOOL jogoPausado;
+
+	DWORD pontuacao;
+
 	DWORD nLinhas;
 	DWORD nColunas;
+
 	DWORD tempoAguaComecaFluir;
+	DWORD tempoDecorrido;
+
 	DWORD coordenadasOrigemAgua[2];
 	DWORD coordenadasDestinoAgua[2];
+
+	DWORD coordenadaAtualAgua[2];
+
 	int mapaJogo[20][20];
-} DadosMapaJogo;
+} DadosJogo;
 
 typedef struct {
-	HANDLE hMapFile;
-	DadosMapaJogo* mapaJogo;
+	HANDLE hMapFileJogador1;
+	HANDLE hMapFileJogador2;
+	DadosJogo* jogador1;
+	DadosJogo* jogador2;
 	int threadMustContinue;
-	HANDLE newMsg;
+	HANDLE hEvent;
 	HANDLE hRWMutex;
 	HANDLE hSemaforo;
-} PartilhaMapaJogo;
+} PartilhaJogo;
+
+typedef BOOL(*PFUNC_TypeBool_NoArguments) ();
+typedef BOOL(*PFUNC_TypeBool_PointerPartilhaMapaJogo) (PartilhaJogo*);
