@@ -29,6 +29,18 @@ DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max);
 
 #define MSGBUFSIZE sizeof(DadosJogo)
 
+//buffer circular monitor para servidor
+#define SHM_NAME_BUFFER_CIRCULAR_MONITOR_PARA_SERVIDOR _T("memoriaPartilhaMonitorParaServidor")
+#define MUTEX_NAME_BUFFER_CIRCULAR_MONITOR_PARA_SERVIDOR TEXT("MUTEX_BUFFER_CIRCULAR_MONITOR_PARA_SERVIDOR")
+#define SEM_WRITE_NAME_BUFFER_CIRCULAR_MONITOR_PARA_SERVIDOR TEXT("SEM_WRITE_BUFFER_CIRCULAR_MONITOR_PARA_SERVIDOR")
+#define SEM_READ_NAME_BUFFER_CIRCULAR_MONITOR_PARA_SERVIDOR TEXT("SEM_READ_BUFFER_CIRCULAR_MONITOR_PARA_SERVIDOR")
+
+//buffer circular servidor para monitor
+#define SHM_NAME_BUFFER_CIRCULAR_SERVIDOR_PARA_MONITOR _T("memoriaPartilhaServidorParaMonitor")
+#define MUTEX_NAME_BUFFER_CIRCULAR_SERVIDOR_PARA_MONITOR TEXT("MUTEX_BUFFER_CIRCULAR_SERVIDOR_PARA_MONITOR")
+#define SEM_WRITE_NAME_BUFFER_CIRCULAR_SERVIDOR_PARA_MONITOR TEXT("SEM_WRITE_BUFFER_CIRCULAR_SERVIDOR_PARA_MONITOR")
+#define SEM_READ_NAME_BUFFER_CIRCULAR_SERVIDOR_PARA_MONITOR TEXT("SEM_READ_BUFFER_CIRCULAR_SERVIDOR_PARA_MONITOR")
+
 // Um dos tubos multiplicado por 10 significa que tem água, exceto tuboVazio
 #define tuboVazio 0
 #define tuboBloqueado 1
@@ -105,13 +117,9 @@ typedef struct {
 
 	BufferCell buffer[BUFFER_SIZE]; // Buffer Circular
 
-	HANDLE hMutex;
+} BufferCircular;
 
-	HANDLE hSemaforoLeitura;
-	HANDLE hSemaforoEscrita;
-
-} SharedMemBufferCircular;
-
+//estrutura de control
 typedef struct {
 	HANDLE hMapFileJogos[N_JOGADORES];
 
@@ -119,7 +127,7 @@ typedef struct {
 
 	DefinicoesJogo definicoesJogo;
 
-	int threadMustContinue;
+	BOOL threadMustContinue;
 
 	HANDLE hEvent;
 	HANDLE hEventJogosDecorrer;
@@ -127,6 +135,24 @@ typedef struct {
 	HANDLE hRWMutex;
 	
 	HANDLE hSemaforo;
+
+	//bufferCircular Monitor para Servidor
+	HANDLE hMapFileBufferCircularServidorParaMonitor;
+	BufferCircular* bufferCircularServidorParaMonitor;
+
+	HANDLE hMutexBufferCircularServidorParaMonitor;
+
+	HANDLE hSemaforoLeituraBufferCircularServidorParaMonitor;
+	HANDLE hSemaforoEscritaBufferCircularServidorParaMonitor;
+
+	//bufferCircular Servidor para Monitor
+	HANDLE hMapFileBufferCircularMonitorParaServidor;
+	BufferCircular* bufferCircularMonitorParaServidor;
+
+	HANDLE hMutexBufferCircularMonitorParaServidor;
+
+	HANDLE hSemaforoLeituraBufferCircularMonitorParaServidor;
+	HANDLE hSemaforoEscritaBufferCircularMonitorParaServidor;
 
 } PartilhaJogo;
 

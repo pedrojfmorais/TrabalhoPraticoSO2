@@ -23,7 +23,7 @@ BOOL initMemAndSync(PartilhaJogo* partilhaJogo) {
 	{
 		TCHAR nomeShareMemory[TAM];
 		swprintf(nomeShareMemory, TAM, _T("%s%d"), SHM_NAME_JOGO, i);
-		_tprintf(_T("%s\n"), nomeShareMemory);
+
 		partilhaJogo->hMapFileJogos[i] = CreateFileMapping(
 			INVALID_HANDLE_VALUE,
 			NULL,
@@ -120,5 +120,254 @@ BOOL initMemAndSync(PartilhaJogo* partilhaJogo) {
 		CloseHandle(partilhaJogo->hEventJogosDecorrer);
 		return FALSE;
 	}
+
+	// buffer circular monitor para servidor
+	partilhaJogo->hMapFileBufferCircularMonitorParaServidor = CreateFileMapping(
+		INVALID_HANDLE_VALUE,
+		NULL,
+		PAGE_READWRITE,
+		0,
+		MSGBUFSIZE,
+		SHM_NAME_BUFFER_CIRCULAR_MONITOR_PARA_SERVIDOR
+	);
+
+	if (partilhaJogo->hMapFileBufferCircularMonitorParaServidor == NULL) {
+		_tprintf(_T("ERROR: CreateFileMapping (%d)\n"), GetLastError());
+		for (DWORD i = 0; i < N_JOGADORES; i++) {
+			UnmapViewOfFile(partilhaJogo->jogos[i]);
+			CloseHandle(partilhaJogo->hMapFileJogos[i]);
+		}
+		CloseHandle(partilhaJogo->hRWMutex);
+		CloseHandle(partilhaJogo->hEvent);
+		CloseHandle(partilhaJogo->hEventJogosDecorrer);
+		return FALSE;
+	}
+
+	partilhaJogo->bufferCircularMonitorParaServidor = (BufferCircular*)MapViewOfFile(
+		partilhaJogo->hMapFileBufferCircularMonitorParaServidor,
+		FILE_MAP_ALL_ACCESS,
+		0,
+		0,
+		sizeof(BufferCircular)
+	);
+
+	if (partilhaJogo->bufferCircularMonitorParaServidor == NULL) {
+		_tprintf(_T("ERROR: MapViewOfFile (%d)\n"), GetLastError());
+		for (DWORD i = 0; i < N_JOGADORES; i++) {
+			UnmapViewOfFile(partilhaJogo->jogos[i]);
+			CloseHandle(partilhaJogo->hMapFileJogos[i]);
+		}
+		CloseHandle(partilhaJogo->hRWMutex);
+		CloseHandle(partilhaJogo->hEvent);
+		CloseHandle(partilhaJogo->hEventJogosDecorrer);
+		CloseHandle(partilhaJogo->hMapFileBufferCircularMonitorParaServidor);
+		return FALSE;
+	}
+
+	partilhaJogo->hMutexBufferCircularMonitorParaServidor = CreateMutex(
+		NULL,
+		FALSE,
+		MUTEX_NAME_BUFFER_CIRCULAR_MONITOR_PARA_SERVIDOR
+	);
+
+	if (partilhaJogo->hMutexBufferCircularMonitorParaServidor == NULL) {
+		_tprintf(_T("ERROR: CreateMutex (%d)\n"), GetLastError());
+
+		for (DWORD i = 0; i < N_JOGADORES; i++) {
+			UnmapViewOfFile(partilhaJogo->jogos[i]);
+			CloseHandle(partilhaJogo->hMapFileJogos[i]);
+		}
+		CloseHandle(partilhaJogo->hRWMutex);
+		CloseHandle(partilhaJogo->hEvent);
+		CloseHandle(partilhaJogo->hEventJogosDecorrer);
+		UnmapViewOfFile(partilhaJogo->bufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hMapFileBufferCircularMonitorParaServidor);
+		return FALSE;
+	}
+
+	partilhaJogo->hSemaforoEscritaBufferCircularMonitorParaServidor = CreateSemaphore(
+		NULL,
+		BUFFER_SIZE,
+		BUFFER_SIZE,
+		SEM_WRITE_NAME_BUFFER_CIRCULAR_MONITOR_PARA_SERVIDOR
+	);
+	if (partilhaJogo->hSemaforoEscritaBufferCircularMonitorParaServidor == NULL) {
+		_tprintf(_T("ERROR: CreateSemaphore (%d)\n"), GetLastError());
+		for (DWORD i = 0; i < N_JOGADORES; i++) {
+			UnmapViewOfFile(partilhaJogo->jogos[i]);
+			CloseHandle(partilhaJogo->hMapFileJogos[i]);
+		}
+		CloseHandle(partilhaJogo->hMutexBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hRWMutex);
+		CloseHandle(partilhaJogo->hEvent);
+		CloseHandle(partilhaJogo->hEventJogosDecorrer);
+		UnmapViewOfFile(partilhaJogo->bufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hMapFileBufferCircularMonitorParaServidor);
+		return FALSE;
+	}
+
+	partilhaJogo->hSemaforoLeituraBufferCircularMonitorParaServidor = CreateSemaphore(
+		NULL,
+		0,
+		BUFFER_SIZE,
+		SEM_READ_NAME_BUFFER_CIRCULAR_MONITOR_PARA_SERVIDOR
+	);
+	if (partilhaJogo->hSemaforoLeituraBufferCircularMonitorParaServidor == NULL) {
+		_tprintf(_T("ERROR: CreateSemaphore (%d)\n"), GetLastError());
+		for (DWORD i = 0; i < N_JOGADORES; i++) {
+			CloseHandle(partilhaJogo->hMapFileJogos[i]);
+			UnmapViewOfFile(partilhaJogo->jogos[i]);
+		}
+		CloseHandle(partilhaJogo->hMutexBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hRWMutex);
+		CloseHandle(partilhaJogo->hEvent);
+		CloseHandle(partilhaJogo->hEventJogosDecorrer);
+		UnmapViewOfFile(partilhaJogo->bufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hMapFileBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hSemaforoEscritaBufferCircularMonitorParaServidor);
+		return FALSE;
+	}
+
+	// buffer circular servidor para monitor
+	partilhaJogo->hMapFileBufferCircularServidorParaMonitor = CreateFileMapping(
+		INVALID_HANDLE_VALUE,
+		NULL,
+		PAGE_READWRITE,
+		0,
+		MSGBUFSIZE,
+		SHM_NAME_BUFFER_CIRCULAR_SERVIDOR_PARA_MONITOR
+	);
+
+	if (partilhaJogo->hMapFileBufferCircularServidorParaMonitor == NULL) {
+		_tprintf(_T("ERROR: CreateFileMapping (%d)\n"), GetLastError());
+		for (DWORD i = 0; i < N_JOGADORES; i++) {
+			CloseHandle(partilhaJogo->hMapFileJogos[i]);
+			UnmapViewOfFile(partilhaJogo->jogos[i]);
+		}
+		CloseHandle(partilhaJogo->hMutexBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hRWMutex);
+		CloseHandle(partilhaJogo->hEvent);
+		CloseHandle(partilhaJogo->hEventJogosDecorrer);
+		UnmapViewOfFile(partilhaJogo->bufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hMapFileBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hSemaforoEscritaBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hSemaforoLeituraBufferCircularMonitorParaServidor);
+		return FALSE;
+	}
+
+	partilhaJogo->bufferCircularServidorParaMonitor = (BufferCircular*)MapViewOfFile(
+		partilhaJogo->hMapFileBufferCircularServidorParaMonitor,
+		FILE_MAP_ALL_ACCESS,
+		0,
+		0,
+		sizeof(BufferCircular)
+	);
+
+	if (partilhaJogo->bufferCircularServidorParaMonitor == NULL) {
+		_tprintf(_T("ERROR: MapViewOfFile (%d)\n"), GetLastError());
+		for (DWORD i = 0; i < N_JOGADORES; i++) {
+			CloseHandle(partilhaJogo->hMapFileJogos[i]);
+			UnmapViewOfFile(partilhaJogo->jogos[i]);
+		}
+		CloseHandle(partilhaJogo->hMutexBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hRWMutex);
+		CloseHandle(partilhaJogo->hEvent);
+		CloseHandle(partilhaJogo->hEventJogosDecorrer);
+
+		UnmapViewOfFile(partilhaJogo->bufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hMapFileBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hSemaforoEscritaBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hSemaforoLeituraBufferCircularMonitorParaServidor);
+
+		CloseHandle(partilhaJogo->hMapFileBufferCircularServidorParaMonitor);
+		return FALSE;
+	}
+
+	partilhaJogo->hMutexBufferCircularServidorParaMonitor = CreateMutex(
+		NULL,
+		FALSE,
+		MUTEX_NAME_BUFFER_CIRCULAR_SERVIDOR_PARA_MONITOR
+	);
+
+	if (partilhaJogo->hMutexBufferCircularServidorParaMonitor == NULL) {
+		_tprintf(_T("ERROR: CreateMutex (%d)\n"), GetLastError());
+		for (DWORD i = 0; i < N_JOGADORES; i++) {
+			CloseHandle(partilhaJogo->hMapFileJogos[i]);
+			UnmapViewOfFile(partilhaJogo->jogos[i]);
+		}
+		CloseHandle(partilhaJogo->hMutexBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hRWMutex);
+		CloseHandle(partilhaJogo->hEvent);
+		CloseHandle(partilhaJogo->hEventJogosDecorrer);
+
+		UnmapViewOfFile(partilhaJogo->bufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hMapFileBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hSemaforoEscritaBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hSemaforoLeituraBufferCircularMonitorParaServidor);
+
+		CloseHandle(partilhaJogo->hMapFileBufferCircularServidorParaMonitor);
+		UnmapViewOfFile(partilhaJogo->bufferCircularServidorParaMonitor);
+		return FALSE;
+	}
+
+	partilhaJogo->hSemaforoEscritaBufferCircularServidorParaMonitor = CreateSemaphore(
+		NULL,
+		BUFFER_SIZE,
+		BUFFER_SIZE,
+		SEM_WRITE_NAME_BUFFER_CIRCULAR_SERVIDOR_PARA_MONITOR
+	);
+	if (partilhaJogo->hSemaforoEscritaBufferCircularServidorParaMonitor == NULL) {
+		_tprintf(_T("ERROR: CreateSemaphore (%d)\n"), GetLastError());
+		for (DWORD i = 0; i < N_JOGADORES; i++) {
+			CloseHandle(partilhaJogo->hMapFileJogos[i]);
+			UnmapViewOfFile(partilhaJogo->jogos[i]);
+		}
+		CloseHandle(partilhaJogo->hMutexBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hRWMutex);
+		CloseHandle(partilhaJogo->hEvent);
+		CloseHandle(partilhaJogo->hEventJogosDecorrer);
+
+		UnmapViewOfFile(partilhaJogo->bufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hMapFileBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hSemaforoEscritaBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hSemaforoLeituraBufferCircularMonitorParaServidor);
+
+		CloseHandle(partilhaJogo->hMapFileBufferCircularServidorParaMonitor);
+		UnmapViewOfFile(partilhaJogo->bufferCircularServidorParaMonitor);
+		CloseHandle(partilhaJogo->hMutexBufferCircularServidorParaMonitor);
+		return FALSE;
+	}
+
+	partilhaJogo->hSemaforoLeituraBufferCircularServidorParaMonitor = CreateSemaphore(
+		NULL,
+		0,
+		BUFFER_SIZE,
+		SEM_READ_NAME_BUFFER_CIRCULAR_SERVIDOR_PARA_MONITOR
+	);
+	if (partilhaJogo->hSemaforoLeituraBufferCircularServidorParaMonitor == NULL) {
+		_tprintf(_T("ERROR: CreateSemaphore (%d)\n"), GetLastError());
+		for (DWORD i = 0; i < N_JOGADORES; i++) {
+			CloseHandle(partilhaJogo->hMapFileJogos[i]);
+			UnmapViewOfFile(partilhaJogo->jogos[i]);
+		}
+		CloseHandle(partilhaJogo->hMutexBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hRWMutex);
+		CloseHandle(partilhaJogo->hEvent);
+		CloseHandle(partilhaJogo->hEventJogosDecorrer);
+
+		UnmapViewOfFile(partilhaJogo->bufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hMapFileBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hSemaforoEscritaBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hSemaforoLeituraBufferCircularMonitorParaServidor);
+
+		CloseHandle(partilhaJogo->hMapFileBufferCircularServidorParaMonitor);
+		UnmapViewOfFile(partilhaJogo->bufferCircularServidorParaMonitor);
+		CloseHandle(partilhaJogo->hMutexBufferCircularServidorParaMonitor);
+		CloseHandle(partilhaJogo->hSemaforoEscritaBufferCircularServidorParaMonitor);
+		return FALSE;
+	}
+
+	partilhaJogo->threadMustContinue = TRUE;
+
 	return TRUE;
 }

@@ -4,3 +4,5 @@
 #include "mostraMapaJogo.h"
 
 BOOL WINAPI recebeMapaJogoDoServidor(LPVOID p);
+DWORD WINAPI enviaMensagemServidor(LPVOID p);
+BOOL WINAPI recebeMensagemServidor(LPVOID p);

@@ -175,41 +175,40 @@ int _tmain(int argc, TCHAR* argv[]) {
 
 	HANDLE hThread = CreateThread(NULL, 0, atualizaMapaJogoParaMonitor, &partilhaJogo, 0, NULL);
 	HANDLE hThreadDecorreJogo = CreateThread(NULL, 0, decorrerJogo, &partilhaJogo, 0, NULL);
+	HANDLE hThreadBufferCircularMonitorParaServidor = CreateThread(NULL, 0, recebeMensagemMonitor, &partilhaJogo, 0, NULL);
+	HANDLE hThreadBufferLeMensagemUtilizador = CreateThread(NULL, 0, leMensagemUtilizador, &partilhaJogo, 0, NULL);
 
-	if (hThread == NULL || hThreadDecorreJogo == NULL) {
+	if (hThread == NULL || hThreadDecorreJogo == NULL || hThreadBufferCircularMonitorParaServidor == NULL || hThreadBufferLeMensagemUtilizador == NULL) {
 		_tprintf(_T("Não foi possivel criar as threads necessárias para o funcionamento do servidor."));
 		return 1;
-	}
-
-	//verificações threads
-
-	TCHAR comandoInserido[TAM];
-
-	while (1) {
-		_getts_s(comandoInserido, TAM);
-
-		if (_tcscmp(comandoInserido, _T("exit")) == 0) {
-			partilhaJogo.threadMustContinue = 0;
-			ReleaseSemaphore(partilhaJogo.hSemaforo, 1, NULL);
-			break;
-		}else if (_tcscmp(comandoInserido, _T("start")) == 0) {
-			SetEvent(partilhaJogo.hEventJogosDecorrer);
-		}
-
-		ReleaseSemaphore(partilhaJogo.hSemaforo, 1, NULL);
 	}
 
 	WaitForSingleObject(hThread, INFINITE);
 
 	for (DWORD i = 0; i < N_JOGADORES; i++) {
-		UnmapViewOfFile(partilhaJogo.jogos[i]);
 		CloseHandle(partilhaJogo.hMapFileJogos[i]);
+		UnmapViewOfFile(partilhaJogo.jogos[i]);
 	}
+	CloseHandle(partilhaJogo.hMutexBufferCircularMonitorParaServidor);
 	CloseHandle(partilhaJogo.hRWMutex);
 	CloseHandle(partilhaJogo.hEvent);
-	CloseHandle(partilhaJogo.hSemaforo);
 	CloseHandle(partilhaJogo.hEventJogosDecorrer);
+
+	UnmapViewOfFile(partilhaJogo.bufferCircularMonitorParaServidor);
+	CloseHandle(partilhaJogo.hMapFileBufferCircularMonitorParaServidor);
+	CloseHandle(partilhaJogo.hSemaforoEscritaBufferCircularMonitorParaServidor);
+	CloseHandle(partilhaJogo.hSemaforoLeituraBufferCircularMonitorParaServidor);
+
+	CloseHandle(partilhaJogo.hMapFileBufferCircularServidorParaMonitor);
+	UnmapViewOfFile(partilhaJogo.bufferCircularServidorParaMonitor);
+	CloseHandle(partilhaJogo.hMutexBufferCircularServidorParaMonitor);
+	CloseHandle(partilhaJogo.hSemaforoEscritaBufferCircularServidorParaMonitor);
+	CloseHandle(partilhaJogo.hSemaforoLeituraBufferCircularServidorParaMonitor);
+
 	CloseHandle(hThread);
+	CloseHandle(hThreadDecorreJogo);
+	CloseHandle(hThreadBufferCircularMonitorParaServidor);
+	CloseHandle(hThreadBufferLeMensagemUtilizador);
 	CloseHandle(hLibrary);
 
 	return 0;

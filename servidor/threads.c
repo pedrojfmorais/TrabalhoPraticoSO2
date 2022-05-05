@@ -1,11 +1,12 @@
 #include "threads.h"
 #include "pathfindAgua.h"
+#include "comandosMonitor.h"
 
 BOOL WINAPI atualizaMapaJogoParaMonitor(LPVOID p) {
 
 	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
 
-	while (1) {
+	while (partilhaJogo->threadMustContinue) {
 
 
 		WaitForSingleObject(partilhaJogo->hSemaforo, INFINITE);
@@ -25,7 +26,7 @@ BOOL WINAPI atualizaMapaJogoParaMonitor(LPVOID p) {
 BOOL WINAPI decorrerJogo(LPVOID p) {
 	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
 
-	while (1) {
+	while (partilhaJogo->threadMustContinue) {
 
 		WaitForSingleObject(partilhaJogo->hEventJogosDecorrer, INFINITE);
 
@@ -40,10 +41,11 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 
 			if (dadosJogo->tempoAguaComecaFluir < dadosJogo->tempoDecorrido) {
 
-				if (partilhaJogo->definicoesJogo.tempoPararAgua > 0)
-					partilhaJogo->definicoesJogo.tempoPararAgua--;
-
-				else if ((dadosJogo->tempoDecorrido - dadosJogo->tempoAguaComecaFluir) % 2 == 0) {
+				if (partilhaJogo->definicoesJogo.tempoPararAgua > 0){
+					if (i == 0)
+						partilhaJogo->definicoesJogo.tempoPararAgua--;
+				
+				}else if ((dadosJogo->tempoDecorrido - dadosJogo->tempoAguaComecaFluir) % 2 == 0) {
 					//água avança a cada 2 segundos
 					if (dadosJogo->ganhou || dadosJogo->perdeu)
 						dadosJogo->aJogar = FALSE;
@@ -73,26 +75,61 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 		Sleep(1000);
 	}
 }
-//testar
-void trataMensagem(TCHAR* Comando);
 
 BOOL WINAPI recebeMensagemMonitor(LPVOID p) {
-	SharedMemBufferCircular* bufferCircular = (SharedMemBufferCircular*)p;
+	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
 
-	while (1) {
+	while (partilhaJogo->threadMustContinue) {
 
+		WaitForSingleObject(partilhaJogo->hSemaforoLeituraBufferCircularMonitorParaServidor, INFINITE);
+		WaitForSingleObject(partilhaJogo->hMutexBufferCircularMonitorParaServidor, INFINITE);
 
-		WaitForSingleObject(bufferCircular->hSemaforoLeitura, INFINITE);
-		WaitForSingleObject(bufferCircular->hMutex, INFINITE);
+		trataMensagem(partilhaJogo, partilhaJogo->bufferCircularMonitorParaServidor->buffer[partilhaJogo->bufferCircularMonitorParaServidor->rP].mensagem);
 
-		trataMensagem(bufferCircular->buffer[bufferCircular->rP].mensagem);
-		(bufferCircular->rP) += 1;
+		(partilhaJogo->bufferCircularMonitorParaServidor->rP) += 1;
 
-		if (bufferCircular->rP == BUFFER_SIZE)
-			bufferCircular->rP = 0;
+		if (partilhaJogo->bufferCircularMonitorParaServidor->rP == BUFFER_SIZE)
+			partilhaJogo->bufferCircularMonitorParaServidor->rP = 0;
 
-		ReleaseMutex(bufferCircular->hMutex);
+		ReleaseMutex(partilhaJogo->hMutexBufferCircularMonitorParaServidor);
+		ReleaseSemaphore(partilhaJogo->hSemaforoEscritaBufferCircularMonitorParaServidor, 1, NULL);
 
 	}
 	return TRUE;
+}
+
+
+DWORD WINAPI leMensagemUtilizador(LPVOID p) {
+	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
+	BufferCell cell;
+
+	while (partilhaJogo->threadMustContinue) {
+
+		_tprintf(_T("Insira um comando: "));
+		_getts_s(cell.mensagem, TAM);
+
+		if (_tcscmp(cell.mensagem, _T("exit")) == 0) {
+
+			WaitForSingleObject(partilhaJogo->hSemaforoEscritaBufferCircularServidorParaMonitor, INFINITE); // Produtor verifica se pode 
+			WaitForSingleObject(partilhaJogo->hMutexBufferCircularServidorParaMonitor, INFINITE); // Inicio de zona critica
+
+			CopyMemory(&(partilhaJogo->bufferCircularServidorParaMonitor->buffer[partilhaJogo->bufferCircularServidorParaMonitor->wP]), &cell, sizeof(BufferCell)); // Copia para o buffer circular
+
+			(partilhaJogo->bufferCircularServidorParaMonitor->wP) += 1;
+
+			if (partilhaJogo->bufferCircularServidorParaMonitor->wP == BUFFER_SIZE)
+				partilhaJogo->bufferCircularServidorParaMonitor->wP = 0; // Volta ao inicio
+
+			ReleaseMutex(partilhaJogo->hMutexBufferCircularServidorParaMonitor); // Fim da zona critica
+			ReleaseSemaphore(partilhaJogo->hSemaforoLeituraBufferCircularServidorParaMonitor, 1, NULL);
+
+			partilhaJogo->threadMustContinue = FALSE;
+
+		}
+		if (_tcscmp(cell.mensagem, _T("start")) == 0) {
+			SetEvent(partilhaJogo->hEventJogosDecorrer);
+			ReleaseSemaphore(partilhaJogo->hSemaforo, 1, NULL);
+		}
+	}
+	return 0;
 }

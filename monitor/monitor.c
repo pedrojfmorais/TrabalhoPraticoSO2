@@ -45,21 +45,39 @@ int _tmain(int argc, TCHAR* argv[]) {
 		return 0;
 
 	HANDLE hThread = CreateThread(NULL, 0, recebeMapaJogoDoServidor, &partilhaJogo, 0, NULL);
-	if (hThread == NULL) {
+	HANDLE hThreadBufferCircularMonitorParaServidor = CreateThread(NULL, 0, enviaMensagemServidor, &partilhaJogo, 0, NULL);
+	HANDLE hThreadBufferCircularServidorParaMonitor = CreateThread(NULL, 0, recebeMensagemServidor, &partilhaJogo, 0, NULL);
+
+	if (hThread == NULL || hThreadBufferCircularMonitorParaServidor == NULL || hThreadBufferCircularServidorParaMonitor == NULL) {
 		_tprintf(_T("Não foi possivel criar as threads necessárias para o funcionamento do monitor."));
 		return 1;
 	}
 
 	WaitForSingleObject(hThread, INFINITE);
+
 	for (DWORD i = 0; i < N_JOGADORES; i++) {
-		UnmapViewOfFile(partilhaJogo.jogos[i]);
 		CloseHandle(partilhaJogo.hMapFileJogos[i]);
+		UnmapViewOfFile(partilhaJogo.jogos[i]);
 	}
+	CloseHandle(partilhaJogo.hMutexBufferCircularMonitorParaServidor);
 	CloseHandle(partilhaJogo.hRWMutex);
 	CloseHandle(partilhaJogo.hEvent);
-	CloseHandle(partilhaJogo.hSemaforo);
 	CloseHandle(partilhaJogo.hEventJogosDecorrer);
+
+	UnmapViewOfFile(partilhaJogo.bufferCircularMonitorParaServidor);
+	CloseHandle(partilhaJogo.hMapFileBufferCircularMonitorParaServidor);
+	CloseHandle(partilhaJogo.hSemaforoEscritaBufferCircularMonitorParaServidor);
+	CloseHandle(partilhaJogo.hSemaforoLeituraBufferCircularMonitorParaServidor);
+
+	CloseHandle(partilhaJogo.hMapFileBufferCircularServidorParaMonitor);
+	UnmapViewOfFile(partilhaJogo.bufferCircularServidorParaMonitor);
+	CloseHandle(partilhaJogo.hMutexBufferCircularServidorParaMonitor);
+	CloseHandle(partilhaJogo.hSemaforoEscritaBufferCircularServidorParaMonitor);
+	CloseHandle(partilhaJogo.hSemaforoLeituraBufferCircularServidorParaMonitor);
+
 	CloseHandle(hThread);
+	CloseHandle(hThreadBufferCircularMonitorParaServidor);
+	CloseHandle(hThreadBufferCircularServidorParaMonitor);
 	CloseHandle(hLibrary);
 
 	return 0;
