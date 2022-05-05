@@ -82,7 +82,7 @@ void inicializaServidor(int argc, TCHAR* argv[], PartilhaJogo* partilhaJogo) {
 	}else if(argc == 4) {
 		//Guarda no registry
 		for (DWORD i = 0; i < 3; i++)
-			definicoesJogo[i] = wcstod(argv[i+1], _T('\0'));
+			definicoesJogo[i] = (DWORD) wcstod(argv[i+1], _T('\0'));
 
 		for (DWORD i = 0; i < 2; i++)
 			if (definicoesJogo[i] > 20)
@@ -141,9 +141,9 @@ HINSTANCE verificacoesIniciais() {
 int _tmain(int argc, TCHAR* argv[]) {
 
 #ifdef UNICODE
-	_setmode(_fileno(stdin), _O_WTEXT);
-	_setmode(_fileno(stdout), _O_WTEXT);
-	_setmode(_fileno(stderr), _O_WTEXT);
+	int setmodeSTDIN = _setmode(_fileno(stdin), _O_WTEXT);
+	int setmodeSTDOUT = _setmode(_fileno(stdout), _O_WTEXT);
+	int setmodeSTDERR = _setmode(_fileno(stderr), _O_WTEXT);
 #endif 
 
 	srand((unsigned int)time(NULL));
@@ -171,6 +171,11 @@ int _tmain(int argc, TCHAR* argv[]) {
 
 	HANDLE hThread = CreateThread(NULL, 0, atualizaMapaJogoParaMonitor, &partilhaJogo, 0, NULL);
 	HANDLE hThreadDecorreJogo = CreateThread(NULL, 0, decorrerJogo, &partilhaJogo, 0, NULL);
+
+	if (hThread == NULL || hThreadDecorreJogo == NULL) {
+		_tprintf(_T("Não foi possivel criar as threads necessárias para o funcionamento do servidor."));
+		return 1;
+	}
 
 	//verificações threads
 

@@ -1,5 +1,4 @@
 #include "header.h"
-#include "utils_so2_tp.h"
 
 #define MUTEX_VERIFY_SERVER_OPEN _T("MutexServidorExiste")
 

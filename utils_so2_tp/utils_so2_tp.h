@@ -13,9 +13,6 @@
 
 DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max);
 
-// Retirado da internet "https://www.codewithc.com/change-text-color-in-codeblocks-console-window/"
-void SetColor(int ForgC);
-
 #endif  /* UTILS_SO2_TP_H */
 
 #define TAM 200

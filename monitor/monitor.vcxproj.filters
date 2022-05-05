@@ -18,7 +18,7 @@
     <ClCompile Include="monitor.c">
       <Filter>Arquivos de Origem</Filter>
     </ClCompile>
-    <ClCompile Include="printPecas.c">
+    <ClCompile Include="mostraMapaJogo.c">
       <Filter>Arquivos de Origem</Filter>
     </ClCompile>
     <ClCompile Include="threads.c">
@@ -26,7 +26,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="printPecas.h">
+    <ClInclude Include="mostraMapaJogo.h">
       <Filter>Arquivos de Cabeçalho</Filter>
     </ClInclude>
     <ClInclude Include="threads.h">
