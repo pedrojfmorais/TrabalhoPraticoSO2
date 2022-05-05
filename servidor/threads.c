@@ -33,10 +33,7 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 
 		for (DWORD i = 0; i < N_JOGADORES; i++)
 		{
-			DadosJogo* dadosJogo = partilhaJogo->jogador1;
-
-			if (i == 1)
-				dadosJogo = partilhaJogo->jogador2;
+			DadosJogo* dadosJogo = partilhaJogo->jogos[i];
 
 			if (!dadosJogo->aJogar || dadosJogo->jogoPausado)
 				continue;
@@ -64,9 +61,38 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 		if (sofreuAlteracoes)
 			ReleaseSemaphore(partilhaJogo->hSemaforo, 1, NULL);
 
-		if (!partilhaJogo->jogador1->aJogar && !partilhaJogo->jogador2->aJogar)
+		BOOL todosJogosParados = TRUE;
+
+		for (DWORD i = 0; i < N_JOGADORES; i++)
+			if (partilhaJogo->jogos[i]->aJogar)
+				todosJogosParados = FALSE;
+		
+		if (todosJogosParados)
 			ResetEvent(partilhaJogo->hEvent);
 
 		Sleep(1000);
 	}
+}
+//testar
+void trataMensagem(TCHAR* Comando);
+
+BOOL WINAPI recebeMensagemMonitor(LPVOID p) {
+	SharedMemBufferCircular* bufferCircular = (SharedMemBufferCircular*)p;
+
+	while (1) {
+
+
+		WaitForSingleObject(bufferCircular->hSemaforoLeitura, INFINITE);
+		WaitForSingleObject(bufferCircular->hMutex, INFINITE);
+
+		trataMensagem(bufferCircular->buffer[bufferCircular->rP].mensagem);
+		(bufferCircular->rP) += 1;
+
+		if (bufferCircular->rP == BUFFER_SIZE)
+			bufferCircular->rP = 0;
+
+		ReleaseMutex(bufferCircular->hMutex);
+
+	}
+	return TRUE;
 }

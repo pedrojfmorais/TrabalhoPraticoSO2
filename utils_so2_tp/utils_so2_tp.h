@@ -20,8 +20,7 @@ DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max);
 #define caminhoRegistry _T("software\\so2\\tp\\")
 
 //memória partilhada para o monitor
-#define SHM_NAME_JOGADOR1 _T("memoriaPartilhaJogador1")
-#define SHM_NAME_JOGADOR2 _T("memoriaPartilhaJogador2")
+#define SHM_NAME_JOGO _T("memoriaPartilhaJogador")
 #define SEMAPHORE_NAME _T("SEMAFORO_PartilhaMapaJogo")
 #define MUTEX_NAME_PARTILHA_MAPA_JOGO _T("MutexAtualizarMapaJogo")
 #define EVENT_NAME_PARTILHA_MAPA_JOGO _T("NovaAtualizacaoMapaJogo")
@@ -50,6 +49,7 @@ DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max);
 #define CorSalmao 12
 #define CorAmareloClaro 14
 
+//representa um jogo
 typedef struct {
 
 	DWORD idJogador;
@@ -73,11 +73,12 @@ typedef struct {
 
 	DWORD coordenadaAtualAgua[2];
 
-	int mapaJogo[20][20];
+	int mapaJogo[20][20]; //máximo tamanho do mapa
 
 	DWORD proximaPeca;
 } DadosJogo;
 
+//definições do jogo
 typedef struct {
 
 	DWORD nLinhas;
@@ -90,21 +91,43 @@ typedef struct {
 
 } DefinicoesJogo;
 
+//Tamanho buffer circular
+#define BUFFER_SIZE 10
+
+typedef struct _BufferCell {
+	TCHAR mensagem[TAM];
+} BufferCell;
 
 typedef struct {
-	HANDLE hMapFileJogador1;
-	HANDLE hMapFileJogador2;
 
-	DadosJogo* jogador1;
-	DadosJogo* jogador2;
+	DWORD wP; // Posição do buffer circular para escrita
+	DWORD rP; // Posição do buffer circular para leitura
+
+	BufferCell buffer[BUFFER_SIZE]; // Buffer Circular
+
+	HANDLE hMutex;
+
+	HANDLE hSemaforoLeitura;
+	HANDLE hSemaforoEscrita;
+
+} SharedMemBufferCircular;
+
+typedef struct {
+	HANDLE hMapFileJogos[N_JOGADORES];
+
+	DadosJogo* jogos[N_JOGADORES];
 
 	DefinicoesJogo definicoesJogo;
 
 	int threadMustContinue;
+
 	HANDLE hEvent;
 	HANDLE hEventJogosDecorrer;
+	
 	HANDLE hRWMutex;
+	
 	HANDLE hSemaforo;
+
 } PartilhaJogo;
 
 typedef BOOL(*PFUNC_TypeBool_NoArguments) ();

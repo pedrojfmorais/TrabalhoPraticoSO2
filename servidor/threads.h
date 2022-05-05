@@ -4,3 +4,4 @@
 
 BOOL WINAPI atualizaMapaJogoParaMonitor(LPVOID p);
 BOOL WINAPI decorrerJogo(LPVOID p);
+BOOL WINAPI recebeMensagemMonitor(LPVOID p);

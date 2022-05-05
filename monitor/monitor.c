@@ -39,26 +39,26 @@ int _tmain(int argc, TCHAR* argv[]) {
 	PFUNC_TypeBool_PointerPartilhaMapaJogo initMemAndSync;
 	initMemAndSync = (PFUNC_TypeBool_PointerPartilhaMapaJogo)GetProcAddress(hLibrary, "initMemAndSync");
 
-	PartilhaJogo dadosPartilhaJogo;
+	PartilhaJogo partilhaJogo;
 
-	if (!initMemAndSync(&dadosPartilhaJogo))
+	if (!initMemAndSync(&partilhaJogo))
 		return 0;
 
-	HANDLE hThread = CreateThread(NULL, 0, recebeMapaJogoDoServidor, &dadosPartilhaJogo, 0, NULL);
+	HANDLE hThread = CreateThread(NULL, 0, recebeMapaJogoDoServidor, &partilhaJogo, 0, NULL);
 	if (hThread == NULL) {
 		_tprintf(_T("Não foi possivel criar as threads necessárias para o funcionamento do monitor."));
 		return 1;
 	}
 
 	WaitForSingleObject(hThread, INFINITE);
-	UnmapViewOfFile(dadosPartilhaJogo.jogador1);
-	CloseHandle(dadosPartilhaJogo.hMapFileJogador1);
-	UnmapViewOfFile(dadosPartilhaJogo.jogador2);
-	CloseHandle(dadosPartilhaJogo.hMapFileJogador2);
-	CloseHandle(dadosPartilhaJogo.hRWMutex);
-	CloseHandle(dadosPartilhaJogo.hEvent);
-	CloseHandle(dadosPartilhaJogo.hSemaforo);
-	CloseHandle(dadosPartilhaJogo.hEventJogosDecorrer);
+	for (DWORD i = 0; i < N_JOGADORES; i++) {
+		UnmapViewOfFile(partilhaJogo.jogos[i]);
+		CloseHandle(partilhaJogo.hMapFileJogos[i]);
+	}
+	CloseHandle(partilhaJogo.hRWMutex);
+	CloseHandle(partilhaJogo.hEvent);
+	CloseHandle(partilhaJogo.hSemaforo);
+	CloseHandle(partilhaJogo.hEventJogosDecorrer);
 	CloseHandle(hThread);
 	CloseHandle(hLibrary);
 

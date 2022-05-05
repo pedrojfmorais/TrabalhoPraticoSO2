@@ -82,7 +82,7 @@ void inicializaServidor(int argc, TCHAR* argv[], PartilhaJogo* partilhaJogo) {
 	}else if(argc == 4) {
 		//Guarda no registry
 		for (DWORD i = 0; i < 3; i++)
-			definicoesJogo[i] = (DWORD) wcstod(argv[i+1], _T('\0'));
+			definicoesJogo[i] = (DWORD) _tcstod(argv[i+1], _T('\0'));
 
 		for (DWORD i = 0; i < 2; i++)
 			if (definicoesJogo[i] > 20)
@@ -105,12 +105,16 @@ void inicializaServidor(int argc, TCHAR* argv[], PartilhaJogo* partilhaJogo) {
 	partilhaJogo->definicoesJogo.modoAleatorioLigado = TRUE;
 	partilhaJogo->definicoesJogo.tempoPararAgua = 0;
 
-	partilhaJogo->jogador1->idJogador = 1;
-	partilhaJogo->jogador2->idJogador = 2;
+	for (DWORD i = 0; i < N_JOGADORES; i++)
+	{
+		partilhaJogo->jogos[i]->idJogador = i + 1;
+	}
 
 	//debug
-	inicializaJogo(partilhaJogo->jogador1, partilhaJogo->definicoesJogo);
-	inicializaJogo(partilhaJogo->jogador2, partilhaJogo->definicoesJogo);
+	for (DWORD i = 0; i < N_JOGADORES; i++)
+	{
+		inicializaJogo(partilhaJogo->jogos[i], partilhaJogo->definicoesJogo);
+	}
 
 }
 
@@ -161,13 +165,13 @@ int _tmain(int argc, TCHAR* argv[]) {
 	inicializaServidor(argc, argv, &partilhaJogo);
 
 	//debug
-	_tprintf(_T("%d %d %d \n"), partilhaJogo.jogador1->nLinhas, partilhaJogo.jogador1->nColunas, partilhaJogo.jogador1->tempoAguaComecaFluir);
-	_tprintf(_T("%d %d \n"), partilhaJogo.jogador1->coordenadasOrigemAgua[0], partilhaJogo.jogador1->coordenadasOrigemAgua[1]);
-	_tprintf(_T("%d %d \n"), partilhaJogo.jogador1->coordenadasDestinoAgua[0], partilhaJogo.jogador1->coordenadasDestinoAgua[1]);
-	
-	_tprintf(_T("%d %d %d \n"), partilhaJogo.jogador2->nLinhas, partilhaJogo.jogador2->nColunas, partilhaJogo.jogador2->tempoAguaComecaFluir);
-	_tprintf(_T("%d %d \n"), partilhaJogo.jogador2->coordenadasOrigemAgua[0], partilhaJogo.jogador2->coordenadasOrigemAgua[1]);
-	_tprintf(_T("%d %d \n"), partilhaJogo.jogador2->coordenadasDestinoAgua[0], partilhaJogo.jogador2->coordenadasDestinoAgua[1]);
+
+	for (DWORD i = 0; i < N_JOGADORES; i++)
+	{
+		_tprintf(_T("%d %d %d \n"), partilhaJogo.jogos[i]->nLinhas, partilhaJogo.jogos[i]->nColunas, partilhaJogo.jogos[i]->tempoAguaComecaFluir);
+		_tprintf(_T("%d %d \n"), partilhaJogo.jogos[i]->coordenadasOrigemAgua[0], partilhaJogo.jogos[i]->coordenadasOrigemAgua[1]);
+		_tprintf(_T("%d %d \n"), partilhaJogo.jogos[i]->coordenadasDestinoAgua[0], partilhaJogo.jogos[i]->coordenadasDestinoAgua[1]);
+	}
 
 	HANDLE hThread = CreateThread(NULL, 0, atualizaMapaJogoParaMonitor, &partilhaJogo, 0, NULL);
 	HANDLE hThreadDecorreJogo = CreateThread(NULL, 0, decorrerJogo, &partilhaJogo, 0, NULL);
@@ -197,10 +201,10 @@ int _tmain(int argc, TCHAR* argv[]) {
 
 	WaitForSingleObject(hThread, INFINITE);
 
-	UnmapViewOfFile(partilhaJogo.jogador1);
-	CloseHandle(partilhaJogo.hMapFileJogador1);
-	UnmapViewOfFile(partilhaJogo.jogador2);
-	CloseHandle(partilhaJogo.hMapFileJogador2);
+	for (DWORD i = 0; i < N_JOGADORES; i++) {
+		UnmapViewOfFile(partilhaJogo.jogos[i]);
+		CloseHandle(partilhaJogo.hMapFileJogos[i]);
+	}
 	CloseHandle(partilhaJogo.hRWMutex);
 	CloseHandle(partilhaJogo.hEvent);
 	CloseHandle(partilhaJogo.hSemaforo);

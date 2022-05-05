@@ -16,10 +16,9 @@ BOOL WINAPI recebeMapaJogoDoServidor(LPVOID p) {
 
 		limpaEcra();
 
-		if (partilhaJogo->jogador1->aJogar)
-			desenharMapaJogo(partilhaJogo->jogador1);
-		if (partilhaJogo->jogador2->aJogar)
-			desenharMapaJogo(partilhaJogo->jogador2);
+		for (DWORD i = 0; i < N_JOGADORES; i++)
+			if (partilhaJogo->jogos[i]->aJogar)
+				desenharMapaJogo(partilhaJogo->jogos[i]);
 
 		ReleaseMutex(partilhaJogo->hRWMutex);
 
