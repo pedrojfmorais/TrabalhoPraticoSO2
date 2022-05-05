@@ -24,7 +24,7 @@ BOOL WINAPI recebeMapaJogoDoServidor(LPVOID p) {
 
 		Sleep(1000);
 	}
-	return 0;
+	return TRUE;
 }
 
 DWORD WINAPI enviaMensagemServidor(LPVOID p) {
@@ -50,7 +50,7 @@ DWORD WINAPI enviaMensagemServidor(LPVOID p) {
 		ReleaseSemaphore(partilhaJogo->hSemaforoLeituraBufferCircularMonitorParaServidor, 1, NULL);
 
 	}
-	return 0;
+	return TRUE;
 }
 
 BOOL WINAPI recebeMensagemServidor(LPVOID p) {

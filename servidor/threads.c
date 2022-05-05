@@ -74,6 +74,7 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 
 		Sleep(1000);
 	}
+	return TRUE;
 }
 
 BOOL WINAPI recebeMensagemMonitor(LPVOID p) {
@@ -131,5 +132,5 @@ DWORD WINAPI leMensagemUtilizador(LPVOID p) {
 			ReleaseSemaphore(partilhaJogo->hSemaforo, 1, NULL);
 		}
 	}
-	return 0;
+	return TRUE;
 }
