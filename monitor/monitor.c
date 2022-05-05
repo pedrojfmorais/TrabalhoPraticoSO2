@@ -1,197 +1,22 @@
 ﻿
 #include "..\\utils_so2_tp\utils_so2_tp.h"
-
-// Retirado da internet "https://www.codewithc.com/change-text-color-in-codeblocks-console-window/"
-void SetColor(int ForgC)
-{
-	WORD wColor;
-	//This handle is needed to get the current background attribute
-
-	HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
-	CONSOLE_SCREEN_BUFFER_INFO csbi;
-	//csbi is used for wAttributes word
-
-	if (GetConsoleScreenBufferInfo(hStdOut, &csbi))
-	{
-		//To mask out all but the background attribute, and to add the color
-		wColor = (csbi.wAttributes & 0xF0) + (ForgC & 0x0F);
-		SetConsoleTextAttribute(hStdOut, wColor);
-	}
-	return;
-}
-
+#include "threads.h"
+#include "printPecas.h"
 
 void limpaEcra() {system("cls");}
 
-void printTuboOrigemAgua(int i, int j, BOOL temAgua) {
-	if (i % 3 == 0 || i % 3 == 2)
-		_tprintf(_T("█"));
-
-	else if (i % 3 == 1) {
-		if (j % 3 == 0)
-			_tprintf(_T("█"));
-
-		else if (j % 3 == 1 || j % 3 == 2) {
-			if (temAgua) {
-				SetColor(CorAzulClaro);
-				_tprintf(_T("█"));
-				SetColor(CorAmareloClaro);
-			}
-			else
-				_tprintf(_T(" "));
-		}
-	}
-}
-void printTuboDestinoAgua(int i, int j, BOOL temAgua) {
-	if (i % 3 == 0 || i % 3 == 2)
-		_tprintf(_T("█"));
-
-	else if (i % 3 == 1) {
-		if (j % 3 == 0 || j % 3 == 1) {
-			if (temAgua) {
-				SetColor(CorAzulClaro);
-				_tprintf(_T("█"));
-				SetColor(CorAmareloClaro);
-			}
-			else
-				_tprintf(_T(" "));
-		}
-		else if (j % 3 == 2)
-			_tprintf(_T("█"));
-
-	}
-}
-void printTuboHorizontal(int i, int j, BOOL temAgua) {
-	if (i % 3 == 0 || i % 3 == 2)
-		_tprintf(_T("█"));
-
-	else if (i % 3 == 1) {
-		if (temAgua) {
-			SetColor(CorAzulClaro);
-			_tprintf(_T("█"));
-			SetColor(CorAmareloClaro);
-		}
-		else
-			_tprintf(_T(" "));
-	}
-}
-void printTuboVertical(int i, int j, BOOL temAgua) {
-	if (j % 3 == 0 || j % 3 == 2)
-		_tprintf(_T("█"));
-
-	else if (j % 3 == 1) {
-		if (temAgua) {
-			SetColor(CorAzulClaro);
-			_tprintf(_T("█"));
-			SetColor(CorAmareloClaro);
-		}
-		else
-			_tprintf(_T(" "));
-	}
-}
-void printTuboCurvaEsquerdaParaCima(int i, int j, BOOL temAgua) {
-	if ((j % 3 == 0 && i % 3 != 1) || (i % 3 == 2 && j % 3 == 1) || (j % 3 == 2))
-		_tprintf(_T("█"));
-
-	else {
-		if (temAgua) {
-			SetColor(CorAzulClaro);
-			_tprintf(_T("█"));
-			SetColor(CorAmareloClaro);
-		}
-		else
-			_tprintf(_T(" "));
-	}
-}
-void printTuboEsquerdaParaBaixo(int i, int j, BOOL temAgua) {
-	if ((j % 3 == 0 && i % 3 != 1) || (i % 3 == 0 && j % 3 == 1) || (j % 3 == 2))
-		_tprintf(_T("█"));
-
-	else {
-		if (temAgua) {
-			SetColor(CorAzulClaro);
-			_tprintf(_T("█"));
-			SetColor(CorAmareloClaro);
-		}
-		else
-			_tprintf(_T(" "));
-	}
-}
-void printTuboCurvaDireitaParaCima(int i, int j, BOOL temAgua) {
-	if ((j % 3 == 2 && i % 3 != 1) || (i % 3 == 2 && j % 3 == 1) || (j % 3 == 0))
-		_tprintf(_T("█"));
-
-	else {
-		if (temAgua) {
-			SetColor(CorAzulClaro);
-			_tprintf(_T("█"));
-			SetColor(CorAmareloClaro);
-		}
-		else
-			_tprintf(_T(" "));
-	}
-}
-void printTuboDireitaParaBaixo(int i, int j, BOOL temAgua) {
-	if ((j % 3 == 2 && i % 3 != 1) || (i % 3 == 0 && j % 3 == 1) || (j % 3 == 0))
-		_tprintf(_T("█"));
-
-	else {
-		if (temAgua) {
-			SetColor(CorAzulClaro);
-			_tprintf(_T("█"));
-			SetColor(CorAmareloClaro);
-		}
-		else
-			_tprintf(_T(" "));
-	}
-}
-void printPeca(DWORD peca, int i, int j, BOOL temAgua) {
-	SetColor(CorAmareloClaro);
-	switch (peca)
-	{
-	case tuboVazio:
-		_tprintf(_T(" "));
-		break;
-	case tuboOrigemAgua:
-		printTuboOrigemAgua(i, j, temAgua);
-		break;
-	case tuboDestinoAgua:
-		printTuboDestinoAgua(i, j, temAgua);
-		break;
-	case tuboHorizontal:
-		printTuboHorizontal(i, j, temAgua);
-		break;
-	case tuboVertical:
-		printTuboVertical(i, j, temAgua);
-		break;
-	case tuboCurvaEsquerdaParaCima:
-		printTuboCurvaEsquerdaParaCima(i, j, temAgua);
-		break;
-	case tuboEsquerdaParaBaixo:
-		printTuboEsquerdaParaBaixo(i, j, temAgua);
-		break;
-	case tuboCurvaDireitaParaCima:
-		printTuboCurvaDireitaParaCima(i, j, temAgua);
-		break;
-	case tuboDireitaParaBaixo:
-		printTuboDireitaParaBaixo(i, j, temAgua);
-		break;
-	default:
-		_tprintf(_T(" "));
-	}
-}
 void desenharMapaJogo(DadosJogo* dadosJogo) {
 
 	_tprintf(_T("\n\n\n"));
 
 	SetColor(CorBranco);
-	for (int i = 0; i < dadosJogo->nLinhas * 3; i++)
+	for (DWORD i = 0; i < dadosJogo->nLinhas * 3; i++)
 	{
 		if (i == 0) {
 			_tprintf(_T("  "));
 
 			SetColor(CorVerde);
-			for (int j = 0; j < dadosJogo->nColunas * 3; j++)
+			for (DWORD j = 0; j < dadosJogo->nColunas * 3; j++)
 				if(j%3 == 1)
 					_tprintf(_T("%d"), (j/3)+1);
 				else
@@ -199,13 +24,13 @@ void desenharMapaJogo(DadosJogo* dadosJogo) {
 			_tprintf(_T("\n "));
 
 			SetColor(CorSalmao);
-			for (int j = 0; j < (dadosJogo->nColunas * 3) + 2; j++)
+			for (DWORD j = 0; j < (dadosJogo->nColunas * 3) + 2; j++)
 				_tprintf(_T("-"));
 
 			_tprintf(_T("\n"));
 		}
 
-		for (int j = 0; j < dadosJogo->nColunas * 3; j++)
+		for (DWORD j = 0; j < dadosJogo->nColunas * 3; j++)
 		{
 			if (j == 0) {
 				SetColor(CorVerde);
@@ -288,7 +113,7 @@ void desenharMapaJogo(DadosJogo* dadosJogo) {
 
 		if (i == (dadosJogo->nLinhas * 3) - 1) {
 
-			for (int i = 0; i < (dadosJogo->nColunas * 3) + 2; i++) {
+			for (DWORD i = 0; i < (dadosJogo->nColunas * 3) + 2; i++) {
 				if (i == 0)
 					_tprintf(_T(" "));
 
@@ -298,32 +123,6 @@ void desenharMapaJogo(DadosJogo* dadosJogo) {
 		}
 		SetColor(CorBranco);
 	}
-}
-
-BOOL WINAPI recebeMapaJogoDoServidor(LPVOID p) {
-
-	PartilhaJogo* partilhaJogo = (PartilhaJogo*) p;
-	DadosJogo msg;
-
-	while (1) {
-		WaitForSingleObject(partilhaJogo->hEvent, INFINITE);
-		if (!partilhaJogo->threadMustContinue)
-			return 0;
-
-		WaitForSingleObject(partilhaJogo->hRWMutex, INFINITE);
-
-		limpaEcra();
-
-		if(partilhaJogo->jogador1->aJogar)
-			desenharMapaJogo(partilhaJogo->jogador1);
-		if (partilhaJogo->jogador2->aJogar)
-			desenharMapaJogo(partilhaJogo->jogador2);
-
-		ReleaseMutex(partilhaJogo->hRWMutex);
-
-		Sleep(1000);
-	}
-	return 0;
 }
 
 HINSTANCE verificacoesIniciais() {
@@ -337,7 +136,7 @@ HINSTANCE verificacoesIniciais() {
 
 	if (hLibrary == NULL) {
 		_tprintf(_T("A DLL não abriu!\n"));
-		return -1;
+		exit(1);
 	}
 
 	PFUNC_TypeBool_NoArguments verificaServidorJaEstaCorrer;
@@ -369,6 +168,7 @@ int _tmain(int argc, TCHAR* argv[]) {
 		return 0;
 
 	HANDLE hThread = CreateThread(NULL, 0, recebeMapaJogoDoServidor, &dadosPartilhaJogo, 0, NULL);
+	//verificação thread
 
 	WaitForSingleObject(hThread, INFINITE);
 	UnmapViewOfFile(dadosPartilhaJogo.jogador1);
@@ -377,7 +177,6 @@ int _tmain(int argc, TCHAR* argv[]) {
 	CloseHandle(dadosPartilhaJogo.hMapFileJogador2);
 	CloseHandle(dadosPartilhaJogo.hRWMutex);
 	CloseHandle(dadosPartilhaJogo.hEvent);
-	CloseHandle(dadosPartilhaJogo.hRWMutex);
 	CloseHandle(dadosPartilhaJogo.hSemaforo);
 	CloseHandle(dadosPartilhaJogo.hEventJogosDecorrer);
 	CloseHandle(hThread);

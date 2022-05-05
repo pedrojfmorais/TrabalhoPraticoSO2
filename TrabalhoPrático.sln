@@ -11,6 +11,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "servidor", "servidor\servid
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "utils_so2_tp", "utils_so2_tp\utils.vcxproj", "{73F53A65-1C49-48F2-8B64-2985AB83C33E}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "utils", "utils", "{6679D571-5158-4999-AD5C-36EEDC2DE750}"
+	ProjectSection(SolutionItems) = preProject
+		utils_so2_tp\utils_so2_tp.c = utils_so2_tp\utils_so2_tp.c
+		utils_so2_tp\utils_so2_tp.h = utils_so2_tp\utils_so2_tp.h
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64

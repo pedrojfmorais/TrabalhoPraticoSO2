@@ -148,4 +148,5 @@ BOOL initMemAndSync(PartilhaJogo* partilhaJogo) {
 		CloseHandle(partilhaJogo->hEventJogosDecorrer);
 		return FALSE;
 	}
+	return TRUE;
 }

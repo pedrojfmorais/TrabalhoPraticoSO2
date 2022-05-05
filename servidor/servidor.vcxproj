@@ -19,7 +19,17 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="comandosMonitor.c" />
+    <ClCompile Include="pathfindAgua.c" />
+    <ClCompile Include="registry.c" />
     <ClCompile Include="servidor.c" />
+    <ClCompile Include="threads.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="comandosMonitor.h" />
+    <ClInclude Include="pathfindAgua.h" />
+    <ClInclude Include="registry.h" />
+    <ClInclude Include="threads.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

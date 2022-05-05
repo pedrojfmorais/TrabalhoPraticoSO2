@@ -141,7 +141,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="header.h" />
-    <ClInclude Include="utils_so2_tp.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="file.c" />
