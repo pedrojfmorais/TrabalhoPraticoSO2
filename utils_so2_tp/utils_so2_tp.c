@@ -3,4 +3,3 @@
 DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max) {
 	return (rand() % (max - min)) + min;
 }
-

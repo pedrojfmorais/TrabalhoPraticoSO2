@@ -1,18 +1,15 @@
 #include "threads.h"
 #include "pathfindAgua.h"
 #include "comandosMonitor.h"
+#include "inicializar.h"
 
 BOOL WINAPI atualizaMapaJogoParaMonitor(LPVOID p) {
 
 	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
 
-	while (partilhaJogo->threadMustContinue) {
-
+	while (1) {
 
 		WaitForSingleObject(partilhaJogo->hSemaforo, INFINITE);
-
-		if (!partilhaJogo->threadMustContinue)
-			break;
 
 		SetEvent(partilhaJogo->hEvent);
 		Sleep(500);
@@ -26,7 +23,7 @@ BOOL WINAPI atualizaMapaJogoParaMonitor(LPVOID p) {
 BOOL WINAPI decorrerJogo(LPVOID p) {
 	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
 
-	while (partilhaJogo->threadMustContinue) {
+	while (1) {
 
 		WaitForSingleObject(partilhaJogo->hEventJogosDecorrer, INFINITE);
 
@@ -80,7 +77,7 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 BOOL WINAPI recebeMensagemMonitor(LPVOID p) {
 	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
 
-	while (partilhaJogo->threadMustContinue) {
+	while (1) {
 
 		WaitForSingleObject(partilhaJogo->hSemaforoLeituraBufferCircularMonitorParaServidor, INFINITE);
 		WaitForSingleObject(partilhaJogo->hMutexBufferCircularMonitorParaServidor, INFINITE);
@@ -104,33 +101,59 @@ DWORD WINAPI leMensagemUtilizador(LPVOID p) {
 	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
 	BufferCell cell;
 
-	while (partilhaJogo->threadMustContinue) {
+	while (1) {
 
 		_tprintf(_T("Insira um comando: "));
 		_getts_s(cell.mensagem, TAM);
 
 		if (_tcscmp(cell.mensagem, _T("exit")) == 0) {
 
-			WaitForSingleObject(partilhaJogo->hSemaforoEscritaBufferCircularServidorParaMonitor, INFINITE); // Produtor verifica se pode 
-			WaitForSingleObject(partilhaJogo->hMutexBufferCircularServidorParaMonitor, INFINITE); // Inicio de zona critica
-
-			CopyMemory(&(partilhaJogo->bufferCircularServidorParaMonitor->buffer[partilhaJogo->bufferCircularServidorParaMonitor->wP]), &cell, sizeof(BufferCell)); // Copia para o buffer circular
-
-			(partilhaJogo->bufferCircularServidorParaMonitor->wP) += 1;
-
-			if (partilhaJogo->bufferCircularServidorParaMonitor->wP == BUFFER_SIZE)
-				partilhaJogo->bufferCircularServidorParaMonitor->wP = 0; // Volta ao inicio
-
-			ReleaseMutex(partilhaJogo->hMutexBufferCircularServidorParaMonitor); // Fim da zona critica
-			ReleaseSemaphore(partilhaJogo->hSemaforoLeituraBufferCircularServidorParaMonitor, 1, NULL);
-
-			partilhaJogo->threadMustContinue = FALSE;
+			SetEvent(partilhaJogo->hEventFecharTudo);
 
 		}
-		if (_tcscmp(cell.mensagem, _T("start")) == 0) {
-			SetEvent(partilhaJogo->hEventJogosDecorrer);
-			ReleaseSemaphore(partilhaJogo->hSemaforo, 1, NULL);
+		else if (_tcscmp(cell.mensagem, _T("start")) == 0) {
+			for (DWORD i = 0; i < N_JOGADORES; i++)
+			{
+				if (!partilhaJogo->jogos[i]->aJogar) {
+					inicializaJogo(partilhaJogo->jogos[i], partilhaJogo->definicoesJogo);
+					
+					if (i == 0) {
+
+						SetEvent(partilhaJogo->hEventJogosDecorrer);
+						ReleaseSemaphore(partilhaJogo->hSemaforo, 1, NULL);
+					}
+					break;
+				}
+			}
+		}
+		else if (_tcscmp(cell.mensagem, _T("pausarJogo")) == 0) {
+			for (DWORD i = 0; i < N_JOGADORES; i++)
+			{
+				if (partilhaJogo->jogos[i]->aJogar) {
+					partilhaJogo->jogos[i]->jogoPausado = !partilhaJogo->jogos[i]->jogoPausado;
+				}
+			}
+		}
+		else if (_tcscmp(cell.mensagem, _T("listar")) == 0) {
+			for (DWORD i = 0; i < N_JOGADORES; i++)
+			{
+				if (partilhaJogo->jogos[i]->aJogar) {
+					_tprintf(_T("Jogador %d\nPontução: %d\n\n"), partilhaJogo->jogos[i]->idJogador, partilhaJogo->jogos[i]->pontuacao);
+				}
+			}
 		}
 	}
 	return TRUE;
+}
+
+DWORD WINAPI acabarThreads(LPVOID p) {
+
+	ThreadsServidor* threadsServidor = (ThreadsServidor*)p;
+
+	WaitForSingleObject(threadsServidor->hEventFecharTudo, INFINITE);
+
+	for (DWORD i = 0; i < N_THREADS_SERVIDOR; i++)
+		TerminateThread(threadsServidor->hThreads[i], 0);
+
+	return 0;
 }

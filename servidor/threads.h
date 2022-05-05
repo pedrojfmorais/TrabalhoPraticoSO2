@@ -6,3 +6,4 @@ BOOL WINAPI atualizaMapaJogoParaMonitor(LPVOID p);
 BOOL WINAPI decorrerJogo(LPVOID p);
 BOOL WINAPI recebeMensagemMonitor(LPVOID p);
 DWORD WINAPI leMensagemUtilizador(LPVOID p);
+DWORD WINAPI acabarThreads(LPVOID p);

@@ -19,6 +19,8 @@ DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max);
 #define N_JOGADORES 2
 #define caminhoRegistry _T("software\\so2\\tp\\")
 
+#define EVENT_FECHAR_TUDO _T("fecharTudo")
+
 //memória partilhada para o monitor
 #define SHM_NAME_JOGO _T("memoriaPartilhaJogador")
 #define SEMAPHORE_NAME _T("SEMAFORO_PartilhaMapaJogo")
@@ -34,12 +36,6 @@ DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max);
 #define MUTEX_NAME_BUFFER_CIRCULAR_MONITOR_PARA_SERVIDOR TEXT("MUTEX_BUFFER_CIRCULAR_MONITOR_PARA_SERVIDOR")
 #define SEM_WRITE_NAME_BUFFER_CIRCULAR_MONITOR_PARA_SERVIDOR TEXT("SEM_WRITE_BUFFER_CIRCULAR_MONITOR_PARA_SERVIDOR")
 #define SEM_READ_NAME_BUFFER_CIRCULAR_MONITOR_PARA_SERVIDOR TEXT("SEM_READ_BUFFER_CIRCULAR_MONITOR_PARA_SERVIDOR")
-
-//buffer circular servidor para monitor
-#define SHM_NAME_BUFFER_CIRCULAR_SERVIDOR_PARA_MONITOR _T("memoriaPartilhaServidorParaMonitor")
-#define MUTEX_NAME_BUFFER_CIRCULAR_SERVIDOR_PARA_MONITOR TEXT("MUTEX_BUFFER_CIRCULAR_SERVIDOR_PARA_MONITOR")
-#define SEM_WRITE_NAME_BUFFER_CIRCULAR_SERVIDOR_PARA_MONITOR TEXT("SEM_WRITE_BUFFER_CIRCULAR_SERVIDOR_PARA_MONITOR")
-#define SEM_READ_NAME_BUFFER_CIRCULAR_SERVIDOR_PARA_MONITOR TEXT("SEM_READ_BUFFER_CIRCULAR_SERVIDOR_PARA_MONITOR")
 
 // Um dos tubos multiplicado por 10 significa que tem água, exceto tuboVazio
 #define tuboVazio 0
@@ -127,7 +123,7 @@ typedef struct {
 
 	DefinicoesJogo definicoesJogo;
 
-	BOOL threadMustContinue;
+	HANDLE hEventFecharTudo;
 
 	HANDLE hEvent;
 	HANDLE hEventJogosDecorrer;
@@ -137,15 +133,6 @@ typedef struct {
 	HANDLE hSemaforo;
 
 	//bufferCircular Monitor para Servidor
-	HANDLE hMapFileBufferCircularServidorParaMonitor;
-	BufferCircular* bufferCircularServidorParaMonitor;
-
-	HANDLE hMutexBufferCircularServidorParaMonitor;
-
-	HANDLE hSemaforoLeituraBufferCircularServidorParaMonitor;
-	HANDLE hSemaforoEscritaBufferCircularServidorParaMonitor;
-
-	//bufferCircular Servidor para Monitor
 	HANDLE hMapFileBufferCircularMonitorParaServidor;
 	BufferCircular* bufferCircularMonitorParaServidor;
 
@@ -155,6 +142,18 @@ typedef struct {
 	HANDLE hSemaforoEscritaBufferCircularMonitorParaServidor;
 
 } PartilhaJogo;
+
+#define N_THREADS_SERVIDOR 4
+typedef struct {
+	HANDLE hThreads[N_THREADS_SERVIDOR];
+	HANDLE hEventFecharTudo;
+} ThreadsServidor;
+
+#define N_THREADS_MONITOR 2
+typedef struct {
+	HANDLE hThreads[N_THREADS_MONITOR];
+	HANDLE hEventFecharTudo;
+} ThreadsMonitor;
 
 typedef BOOL(*PFUNC_TypeBool_NoArguments) ();
 typedef BOOL(*PFUNC_TypeBool_PointerPartilhaMapaJogo) (PartilhaJogo*);

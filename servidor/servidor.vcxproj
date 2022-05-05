@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="comandosMonitor.c" />
+    <ClCompile Include="inicializar.c" />
     <ClCompile Include="pathfindAgua.c" />
     <ClCompile Include="registry.c" />
     <ClCompile Include="servidor.c" />
@@ -27,6 +28,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="comandosMonitor.h" />
+    <ClInclude Include="inicializar.h" />
     <ClInclude Include="pathfindAgua.h" />
     <ClInclude Include="registry.h" />
     <ClInclude Include="threads.h" />

@@ -7,11 +7,9 @@ BOOL WINAPI recebeMapaJogoDoServidor(LPVOID p) {
 
 	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
 
-	while (partilhaJogo->threadMustContinue) {
-		WaitForSingleObject(partilhaJogo->hEvent, INFINITE);
-		if (!partilhaJogo->threadMustContinue)
-			return 0;
+	while (1) {
 
+		WaitForSingleObject(partilhaJogo->hEvent, INFINITE);
 		WaitForSingleObject(partilhaJogo->hRWMutex, INFINITE);
 
 		limpaEcra();
@@ -27,60 +25,48 @@ BOOL WINAPI recebeMapaJogoDoServidor(LPVOID p) {
 	return TRUE;
 }
 
+void enviarMensagemServidor(PartilhaJogo* partilhaJogo, TCHAR* mensagem) {
+
+	BufferCell cell;
+	_tcscpy_s(cell.mensagem, _countof(cell.mensagem), mensagem);
+
+	WaitForSingleObject(partilhaJogo->hSemaforoEscritaBufferCircularMonitorParaServidor, INFINITE); // Produtor verifica se pode 
+	WaitForSingleObject(partilhaJogo->hMutexBufferCircularMonitorParaServidor, INFINITE); // Inicio de zona critica
+
+	CopyMemory(&(partilhaJogo->bufferCircularMonitorParaServidor->buffer[partilhaJogo->bufferCircularMonitorParaServidor->wP]), &cell, sizeof(BufferCell)); // Copia para o buffer circular
+
+	(partilhaJogo->bufferCircularMonitorParaServidor->wP) += 1;
+
+	if (partilhaJogo->bufferCircularMonitorParaServidor->wP == BUFFER_SIZE)
+		partilhaJogo->bufferCircularMonitorParaServidor->wP = 0; // Volta ao inicio
+
+	ReleaseMutex(partilhaJogo->hMutexBufferCircularMonitorParaServidor); // Fim da zona critica
+	ReleaseSemaphore(partilhaJogo->hSemaforoLeituraBufferCircularMonitorParaServidor, 1, NULL);
+}
+
 DWORD WINAPI enviaMensagemServidor(LPVOID p) {
 	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
-	BufferCell cell;
+	TCHAR mensagem[TAM];
 
-	while (partilhaJogo->threadMustContinue) {
+	while (1) {
 		
 		_tprintf(_T("Insira um comando: "));
-		_getts_s(cell.mensagem, TAM);
+		_getts_s(mensagem, TAM);
 		
-		WaitForSingleObject(partilhaJogo->hSemaforoEscritaBufferCircularMonitorParaServidor, INFINITE); // Produtor verifica se pode 
-		WaitForSingleObject(partilhaJogo->hMutexBufferCircularMonitorParaServidor, INFINITE); // Inicio de zona critica
-
-		CopyMemory(&(partilhaJogo->bufferCircularMonitorParaServidor->buffer[partilhaJogo->bufferCircularMonitorParaServidor->wP]), &cell, sizeof(BufferCell)); // Copia para o buffer circular
-
-		(partilhaJogo->bufferCircularMonitorParaServidor->wP) += 1;
-
-		if (partilhaJogo->bufferCircularMonitorParaServidor->wP == BUFFER_SIZE)
-			partilhaJogo->bufferCircularMonitorParaServidor->wP = 0; // Volta ao inicio
-
-		ReleaseMutex(partilhaJogo->hMutexBufferCircularMonitorParaServidor); // Fim da zona critica
-		ReleaseSemaphore(partilhaJogo->hSemaforoLeituraBufferCircularMonitorParaServidor, 1, NULL);
+		enviarMensagemServidor(partilhaJogo, mensagem);
 
 	}
 	return TRUE;
 }
 
-BOOL WINAPI recebeMensagemServidor(LPVOID p) {
-	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
+DWORD WINAPI acabarThreads(LPVOID p) {
 
-	while (partilhaJogo->threadMustContinue) {
+	ThreadsMonitor* threadsMonitor = (ThreadsMonitor*)p;
 
-		WaitForSingleObject(partilhaJogo->hSemaforoLeituraBufferCircularServidorParaMonitor, INFINITE);
-		WaitForSingleObject(partilhaJogo->hMutexBufferCircularServidorParaMonitor, INFINITE);
+	WaitForSingleObject(threadsMonitor->hEventFecharTudo, INFINITE);
 
+	for (DWORD i = 0; i < N_THREADS_MONITOR; i++)
+		TerminateThread(threadsMonitor->hThreads[i], 0);
 
-		TCHAR* next_token = NULL;
-		TCHAR* command;
-		command = _tcstok_s(
-			partilhaJogo->bufferCircularServidorParaMonitor->buffer[partilhaJogo->bufferCircularServidorParaMonitor->rP].mensagem, 
-			_T(" "), 
-			&next_token);
-
-
-		if (_tcscmp(command, _T("exit")) == 0)
-			partilhaJogo->threadMustContinue = FALSE;
-
-		(partilhaJogo->bufferCircularServidorParaMonitor->rP) += 1;
-
-		if (partilhaJogo->bufferCircularServidorParaMonitor->rP == BUFFER_SIZE)
-			partilhaJogo->bufferCircularServidorParaMonitor->rP = 0;
-
-		ReleaseMutex(partilhaJogo->hMutexBufferCircularServidorParaMonitor);
-		ReleaseSemaphore(partilhaJogo->hSemaforoEscritaBufferCircularServidorParaMonitor, 1, NULL);
-
-	}
-	return TRUE;
+	return 0;
 }
