@@ -41,9 +41,8 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 
 			if (dadosJogo->tempoAguaComecaFluir < dadosJogo->tempoDecorrido) {
 
-				if (partilhaJogo->definicoesJogo.tempoPararAgua > 0){
-					if (i == 0)
-						partilhaJogo->definicoesJogo.tempoPararAgua--;
+				if (dadosJogo->tempoPararAgua > 0){
+						dadosJogo->tempoPararAgua--;
 				
 				}else if ((dadosJogo->tempoDecorrido - dadosJogo->tempoAguaComecaFluir) % N_SEGUNDOS_AVANCO_AGUA == 0) {
 					//água avança a cada N_SEGUNDOS_AVANCO_AGUA segundos
@@ -59,7 +58,6 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 
 			dadosJogo->tempoDecorrido += 1;
 			sofreuAlteracoes = TRUE;
-
 		}
 
 		ReleaseMutex(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo);
@@ -112,19 +110,25 @@ DWORD WINAPI leMensagemUtilizador(LPVOID p) {
 	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
 	BufferCell cell;
 
+	//divir os
+	TCHAR* command;
+	TCHAR* next_token = NULL;
+
 	while (1) {
 
 		_tprintf(_T("Insira um comando: "));
 		_getts_s(cell.mensagem, TAM);
 
+		command = _tcstok_s(cell.mensagem, _T(" "), &next_token);
+
 		WaitForSingleObject(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo, INFINITE);
 
-		if (_tcscmp(cell.mensagem, _T("exit")) == 0) {
+		if (_tcscmp(command, _T("exit")) == 0) {
 
 			SetEvent(partilhaJogo->hEventFecharTudo);
 
 		}
-		else if (_tcscmp(cell.mensagem, _T("start")) == 0) {
+		else if (_tcscmp(command, _T("start")) == 0) {
 			for (DWORD i = 0; i < N_JOGADORES; i++)
 			{
 				if (!partilhaJogo->jogos[i]->aJogar) {
@@ -165,21 +169,41 @@ DWORD WINAPI leMensagemUtilizador(LPVOID p) {
 				}
 			}
 		}
-		else if (_tcscmp(cell.mensagem, _T("pausarJogo")) == 0) {
+		else if (_tcscmp(command, _T("pausarJogo")) == 0) {
 
-			for (DWORD i = 0; i < N_JOGADORES; i++)
-			{
-				if (partilhaJogo->jogos[i]->aJogar) {
-					partilhaJogo->jogos[i]->jogoPausado = !partilhaJogo->jogos[i]->jogoPausado;
+			command = _tcstok_s(NULL, _T(" "), &next_token);
+			
+			if (command == NULL) {
+				for (DWORD i = 0; i < N_JOGADORES; i++)
+				{
+					if (partilhaJogo->jogos[i]->aJogar) {
+						partilhaJogo->jogos[i]->jogoPausado = !partilhaJogo->jogos[i]->jogoPausado;
+					}
 				}
 			}
+			else {
+				DWORD nJogador = (DWORD)_tcstod(command, _T('\0'));
+				if(nJogador <= N_JOGADORES && nJogador > 0 && partilhaJogo->jogos[nJogador-1]->aJogar)
+					partilhaJogo->jogos[nJogador - 1]->jogoPausado = !partilhaJogo->jogos[nJogador - 1]->jogoPausado;
+			}
 		}
-		else if (_tcscmp(cell.mensagem, _T("listar")) == 0) {
-			for (DWORD i = 0; i < N_JOGADORES; i++)
-			{
-				if (partilhaJogo->jogos[i]->aJogar) {
-					_tprintf(_T("Jogador %d\nPontução: %d\n\n"), partilhaJogo->jogos[i]->idJogador, partilhaJogo->jogos[i]->pontuacao);
+		else if (_tcscmp(command, _T("listar")) == 0) {
+
+			command = _tcstok_s(NULL, _T(" "), &next_token);
+
+			if (command == NULL) {
+				for (DWORD i = 0; i < N_JOGADORES; i++)
+				{
+					if (partilhaJogo->jogos[i]->aJogar) {
+						_tprintf(_T("Jogador %d\nPontução: %d\n\n"), partilhaJogo->jogos[i]->idJogador, partilhaJogo->jogos[i]->pontuacao);
+					}
 				}
+			}
+			else {
+				DWORD nJogador = (DWORD)_tcstod(command, _T('\0'));
+				if (nJogador <= N_JOGADORES && nJogador > 0 && partilhaJogo->jogos[nJogador - 1]->aJogar)
+					_tprintf(_T("Jogador %d\nPontução: %d\n\n"), partilhaJogo->jogos[nJogador - 1]->idJogador, 
+						partilhaJogo->jogos[nJogador - 1]->pontuacao);
 			}
 		}
 

@@ -253,6 +253,10 @@ void desenharMapaJogo(DadosJogo* dadosJogo) {
 				SetColor(CorAmareloClaro);
 				_tprintf(_T("Jogo em pausa!"));
 			}
+			else if (dadosJogo->tempoPararAgua > 0) {
+				SetColor(CorAzul);
+				_tprintf(_T("Água está parada!"));
+			}
 			break;
 		case 1:
 			_tprintf(_T("\t"));
@@ -269,7 +273,15 @@ void desenharMapaJogo(DadosJogo* dadosJogo) {
 			SetColor(CorBranco);
 			_tprintf(_T("Tempo decorrido: %d segundos"), dadosJogo->tempoDecorrido);
 			break;
-		case 5:
+		case 6:
+			SetColor(CorBranco);
+			if(dadosJogo->modoAleatorioLigado)
+				_tprintf(_T("\tPeças em modo aleatório"));
+			else
+				_tprintf(_T("\tPeças em modo sequencial"));
+			break;
+
+		case 8:
 			SetColor(CorBranco);
 			_tprintf(_T("\tPróxima peça:"));
 			break;
@@ -277,7 +289,7 @@ void desenharMapaJogo(DadosJogo* dadosJogo) {
 			break;
 		}
 
-		if (i == 6 || i == 7 || i == 8) {
+		if (i == 9 || i == 10 || i == 11) {
 			_tprintf(_T("\t"));
 			for (int j = 0; j < 3; j++)
 			{

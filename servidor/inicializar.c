@@ -45,11 +45,13 @@ void inicializaJogo(DadosJogo* jogo, DefinicoesJogo definicoesJogo) {
 	jogo->coordenadaAtualAgua[0] = jogo->coordenadasOrigemAgua[0];
 	jogo->coordenadaAtualAgua[1] = jogo->coordenadasOrigemAgua[1];
 
-	if (definicoesJogo.modoAleatorioLigado)
+	jogo->modoAleatorioLigado = TRUE;
+	jogo->tempoPararAgua = 0;
+
+	if (jogo->modoAleatorioLigado)
 		jogo->proximaPeca = getRandomProximaPeca();
 	else
 		jogo->proximaPeca = tuboHorizontal; // primeira peça
-	
 }
 
 void inicializaServidor(int argc, TCHAR* argv[], PartilhaJogo* partilhaJogo) {
@@ -86,8 +88,6 @@ void inicializaServidor(int argc, TCHAR* argv[], PartilhaJogo* partilhaJogo) {
 	partilhaJogo->definicoesJogo.nLinhas = definicoesJogo[0];
 	partilhaJogo->definicoesJogo.nColunas = definicoesJogo[1];
 	partilhaJogo->definicoesJogo.tempoAguaComecaFluir = definicoesJogo[2];
-	partilhaJogo->definicoesJogo.modoAleatorioLigado = TRUE;
-	partilhaJogo->definicoesJogo.tempoPararAgua = 0;
 
 	for (DWORD i = 0; i < N_JOGADORES; i++)
 	{

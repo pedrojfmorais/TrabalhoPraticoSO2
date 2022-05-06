@@ -5,6 +5,7 @@
 #include <io.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 // só define a função uma vez
@@ -19,7 +20,7 @@ DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max);
 #define TAM 200
 //Configurações para o servidor
 #define N_JOGADORES 2
-#define N_SEGUNDOS_AVANCO_AGUA 5
+#define N_SEGUNDOS_AVANCO_AGUA 2
 #define caminhoRegistry _T("software\\so2\\tp\\")
 
 //Evento para o fecho de todas as aplicações
@@ -56,6 +57,7 @@ DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max);
 // Cores para a consola
 #define CorVermelho 4
 #define CorBranco 7
+#define CorAzul 9
 #define CorVerde 10
 #define CorAzulClaro 11
 #define CorSalmao 12
@@ -88,6 +90,10 @@ typedef struct {
 	int mapaJogo[20][20]; //máximo tamanho do mapa
 
 	DWORD proximaPeca;
+
+	DWORD tempoPararAgua;
+	BOOL modoAleatorioLigado;
+
 } DadosJogo;
 
 //definições do jogo
@@ -97,9 +103,6 @@ typedef struct {
 	DWORD nColunas;
 
 	DWORD tempoAguaComecaFluir;
-
-	DWORD tempoPararAgua;
-	BOOL modoAleatorioLigado;
 
 } DefinicoesJogo;
 
