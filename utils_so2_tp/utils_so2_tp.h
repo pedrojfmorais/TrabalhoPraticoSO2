@@ -15,10 +15,14 @@ DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max);
 
 #endif  /* UTILS_SO2_TP_H */
 
+//Tamanho strings
 #define TAM 200
+//Configurações para o servidor
 #define N_JOGADORES 2
+#define N_SEGUNDOS_AVANCO_AGUA 5
 #define caminhoRegistry _T("software\\so2\\tp\\")
 
+//Evento para o fecho de todas as aplicações
 #define EVENT_FECHAR_TUDO _T("fecharTudo")
 
 //memória partilhada para o monitor
@@ -123,14 +127,15 @@ typedef struct {
 
 	DefinicoesJogo definicoesJogo;
 
+	//Evento que define quando fechar todos os programas servidor, monitor
 	HANDLE hEventFecharTudo;
 
-	HANDLE hEvent;
+	HANDLE hEventAtualizacaoNoJogo;
 	HANDLE hEventJogosDecorrer;
 	
-	HANDLE hRWMutex;
+	HANDLE hReadWriteMutexAtualizacaoNoJogo;
 	
-	HANDLE hSemaforo;
+	HANDLE hSemaforoEnviarAtualizacoesJogo;
 
 	//bufferCircular Monitor para Servidor
 	HANDLE hMapFileBufferCircularMonitorParaServidor;
@@ -143,17 +148,20 @@ typedef struct {
 
 } PartilhaJogo;
 
+//Struct para guardar todas as threads do servidor
 #define N_THREADS_SERVIDOR 4
 typedef struct {
 	HANDLE hThreads[N_THREADS_SERVIDOR];
 	HANDLE hEventFecharTudo;
 } ThreadsServidor;
 
+//Struct para guardar todas as threads do monitor
 #define N_THREADS_MONITOR 2
 typedef struct {
 	HANDLE hThreads[N_THREADS_MONITOR];
 	HANDLE hEventFecharTudo;
 } ThreadsMonitor;
 
+//definição de keyword usada para importar funções da DLL
 typedef BOOL(*PFUNC_TypeBool_NoArguments) ();
 typedef BOOL(*PFUNC_TypeBool_PointerPartilhaMapaJogo) (PartilhaJogo*);

@@ -63,13 +63,14 @@ int _tmain(int argc, TCHAR* argv[]) {
 		CloseHandle(partilhaJogo.hMapFileJogos[i]);
 		UnmapViewOfFile(partilhaJogo.jogos[i]);
 	}
-	CloseHandle(partilhaJogo.hMutexBufferCircularMonitorParaServidor);
-	CloseHandle(partilhaJogo.hRWMutex);
-	CloseHandle(partilhaJogo.hEvent);
+	CloseHandle(partilhaJogo.hReadWriteMutexAtualizacaoNoJogo);
+	CloseHandle(partilhaJogo.hEventAtualizacaoNoJogo);
+	CloseHandle(partilhaJogo.hSemaforoEnviarAtualizacoesJogo);
 	CloseHandle(partilhaJogo.hEventJogosDecorrer);
 	CloseHandle(partilhaJogo.hEventFecharTudo);
 
 	UnmapViewOfFile(partilhaJogo.bufferCircularMonitorParaServidor);
+	CloseHandle(partilhaJogo.hMutexBufferCircularMonitorParaServidor);
 	CloseHandle(partilhaJogo.hMapFileBufferCircularMonitorParaServidor);
 	CloseHandle(partilhaJogo.hSemaforoEscritaBufferCircularMonitorParaServidor);
 	CloseHandle(partilhaJogo.hSemaforoLeituraBufferCircularMonitorParaServidor);

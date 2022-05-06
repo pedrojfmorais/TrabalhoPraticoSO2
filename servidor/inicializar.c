@@ -49,23 +49,7 @@ void inicializaJogo(DadosJogo* jogo, DefinicoesJogo definicoesJogo) {
 		jogo->proximaPeca = getRandomProximaPeca();
 	else
 		jogo->proximaPeca = tuboHorizontal; // primeira peça
-	/*
-	//debug
-	jogo->mapaJogo[0][0] = tuboOrigemAgua * 10;
-
-	jogo->coordenadasOrigemAgua[0] = 0;
-	jogo->coordenadasOrigemAgua[1] = 0;
-
-	jogo->coordenadaAtualAgua[0] = 0;
-	jogo->coordenadaAtualAgua[1] = 0;
-
-	jogo->mapaJogo[0][1] = tuboHorizontal;
-	jogo->mapaJogo[0][2] = tuboEsquerdaParaBaixo;
-	jogo->mapaJogo[1][2] = tuboEsquerdaParaBaixo;
-	jogo->mapaJogo[2][2] = tuboCurvaDireitaParaCima;
-	jogo->mapaJogo[2][3] = tuboHorizontal;
-	jogo->mapaJogo[2][4] = tuboDestinoAgua;
-	*/
+	
 }
 
 void inicializaServidor(int argc, TCHAR* argv[], PartilhaJogo* partilhaJogo) {

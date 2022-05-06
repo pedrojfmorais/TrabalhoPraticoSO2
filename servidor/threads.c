@@ -9,11 +9,11 @@ BOOL WINAPI atualizaMapaJogoParaMonitor(LPVOID p) {
 
 	while (1) {
 
-		WaitForSingleObject(partilhaJogo->hSemaforo, INFINITE);
+		WaitForSingleObject(partilhaJogo->hSemaforoEnviarAtualizacoesJogo, INFINITE);
 
-		SetEvent(partilhaJogo->hEvent);
+		SetEvent(partilhaJogo->hEventAtualizacaoNoJogo);
 		Sleep(500);
-		ResetEvent(partilhaJogo->hEvent);
+		ResetEvent(partilhaJogo->hEventAtualizacaoNoJogo);
 
 	}
 	return TRUE;
@@ -29,8 +29,11 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 
 		BOOL sofreuAlteracoes = FALSE;
 
+		WaitForSingleObject(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo, INFINITE);
+
 		for (DWORD i = 0; i < N_JOGADORES; i++)
 		{
+
 			DadosJogo* dadosJogo = partilhaJogo->jogos[i];
 
 			if (!dadosJogo->aJogar || dadosJogo->jogoPausado)
@@ -42,8 +45,8 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 					if (i == 0)
 						partilhaJogo->definicoesJogo.tempoPararAgua--;
 				
-				}else if ((dadosJogo->tempoDecorrido - dadosJogo->tempoAguaComecaFluir) % 2 == 0) {
-					//água avança a cada 2 segundos
+				}else if ((dadosJogo->tempoDecorrido - dadosJogo->tempoAguaComecaFluir) % N_SEGUNDOS_AVANCO_AGUA == 0) {
+					//água avança a cada N_SEGUNDOS_AVANCO_AGUA segundos
 					if (dadosJogo->ganhou || dadosJogo->perdeu)
 						dadosJogo->aJogar = FALSE;
 
@@ -56,9 +59,13 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 
 			dadosJogo->tempoDecorrido += 1;
 			sofreuAlteracoes = TRUE;
+
 		}
+
+		ReleaseMutex(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo);
+
 		if (sofreuAlteracoes)
-			ReleaseSemaphore(partilhaJogo->hSemaforo, 1, NULL);
+			ReleaseSemaphore(partilhaJogo->hSemaforoEnviarAtualizacoesJogo, 1, NULL);
 
 		BOOL todosJogosParados = TRUE;
 
@@ -67,7 +74,7 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 				todosJogosParados = FALSE;
 		
 		if (todosJogosParados)
-			ResetEvent(partilhaJogo->hEvent);
+			ResetEvent(partilhaJogo->hEventAtualizacaoNoJogo);
 
 		Sleep(1000);
 	}
@@ -82,7 +89,11 @@ BOOL WINAPI recebeMensagemMonitor(LPVOID p) {
 		WaitForSingleObject(partilhaJogo->hSemaforoLeituraBufferCircularMonitorParaServidor, INFINITE);
 		WaitForSingleObject(partilhaJogo->hMutexBufferCircularMonitorParaServidor, INFINITE);
 
+		WaitForSingleObject(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo, INFINITE);
+
 		trataMensagem(partilhaJogo, partilhaJogo->bufferCircularMonitorParaServidor->buffer[partilhaJogo->bufferCircularMonitorParaServidor->rP].mensagem);
+		
+		ReleaseMutex(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo);
 
 		(partilhaJogo->bufferCircularMonitorParaServidor->rP) += 1;
 
@@ -106,6 +117,8 @@ DWORD WINAPI leMensagemUtilizador(LPVOID p) {
 		_tprintf(_T("Insira um comando: "));
 		_getts_s(cell.mensagem, TAM);
 
+		WaitForSingleObject(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo, INFINITE);
+
 		if (_tcscmp(cell.mensagem, _T("exit")) == 0) {
 
 			SetEvent(partilhaJogo->hEventFecharTudo);
@@ -119,14 +132,41 @@ DWORD WINAPI leMensagemUtilizador(LPVOID p) {
 					
 					if (i == 0) {
 
+						//debug
+						//jogo com solução
+						for (DWORD j = 0; j < partilhaJogo->jogos[i]->nLinhas; j++)
+							for (DWORD k = 0; k < partilhaJogo->jogos[i]->nColunas; k++)
+								partilhaJogo->jogos[i]->mapaJogo[j][k] = tuboVazio;
+
+						partilhaJogo->jogos[i]->mapaJogo[0][0] = tuboOrigemAgua * 10;
+
+						partilhaJogo->jogos[i]->coordenadasOrigemAgua[0] = 0;
+						partilhaJogo->jogos[i]->coordenadasOrigemAgua[1] = 0;
+
+						partilhaJogo->jogos[i]->coordenadaAtualAgua[0] = 0;
+						partilhaJogo->jogos[i]->coordenadaAtualAgua[1] = 0;
+
+						partilhaJogo->jogos[i]->mapaJogo[0][1] = tuboHorizontal;
+						partilhaJogo->jogos[i]->mapaJogo[0][2] = tuboHorizontal;
+						partilhaJogo->jogos[i]->mapaJogo[0][3] = tuboCurvaEsquerdaBaixo;
+						partilhaJogo->jogos[i]->mapaJogo[1][3] = tuboVertical;
+						partilhaJogo->jogos[i]->mapaJogo[2][3] = tuboVertical;
+						partilhaJogo->jogos[i]->mapaJogo[3][3] = tuboCurvaEsquerdaCima;
+						partilhaJogo->jogos[i]->mapaJogo[3][2] = tuboCurvaDireitaBaixo;
+						partilhaJogo->jogos[i]->mapaJogo[4][2] = tuboCurvaDireitaCima;
+						partilhaJogo->jogos[i]->mapaJogo[4][3] = tuboHorizontal;
+						partilhaJogo->jogos[i]->mapaJogo[4][4] = tuboDestinoAgua;
+						//fim debug
+
 						SetEvent(partilhaJogo->hEventJogosDecorrer);
-						ReleaseSemaphore(partilhaJogo->hSemaforo, 1, NULL);
+						ReleaseSemaphore(partilhaJogo->hSemaforoEnviarAtualizacoesJogo, 1, NULL);
 					}
 					break;
 				}
 			}
 		}
 		else if (_tcscmp(cell.mensagem, _T("pausarJogo")) == 0) {
+
 			for (DWORD i = 0; i < N_JOGADORES; i++)
 			{
 				if (partilhaJogo->jogos[i]->aJogar) {
@@ -142,6 +182,8 @@ DWORD WINAPI leMensagemUtilizador(LPVOID p) {
 				}
 			}
 		}
+
+		ReleaseMutex(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo);
 	}
 	return TRUE;
 }

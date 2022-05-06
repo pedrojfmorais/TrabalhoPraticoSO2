@@ -53,13 +53,13 @@ BOOL initMemAndSync(PartilhaJogo* partilhaJogo) {
 		}
 	}
 	
-	partilhaJogo->hRWMutex = CreateMutex(
+	partilhaJogo->hReadWriteMutexAtualizacaoNoJogo = CreateMutex(
 		NULL,
 		FALSE,
 		MUTEX_NAME_PARTILHA_MAPA_JOGO
 	);
 
-	if (partilhaJogo->hRWMutex == NULL) {
+	if (partilhaJogo->hReadWriteMutexAtualizacaoNoJogo == NULL) {
 		_tprintf(_T("ERROR: CreateMutex (%d)\n"), GetLastError());
 
 		for (DWORD i = 0; i < N_JOGADORES; i++){
@@ -69,20 +69,20 @@ BOOL initMemAndSync(PartilhaJogo* partilhaJogo) {
 		return FALSE;
 	}
 
-	partilhaJogo->hEvent = CreateEvent(
+	partilhaJogo->hEventAtualizacaoNoJogo = CreateEvent(
 		NULL,
 		TRUE,
 		FALSE,
 		EVENT_NAME_PARTILHA_MAPA_JOGO
 	);
 
-	if (partilhaJogo->hEvent == NULL) {
+	if (partilhaJogo->hEventAtualizacaoNoJogo == NULL) {
 		_tprintf(_T("ERROR: CreateEvent (%d)\n"), GetLastError());
 		for (DWORD i = 0; i < N_JOGADORES; i++) {
 			UnmapViewOfFile(partilhaJogo->jogos[i]);
 			CloseHandle(partilhaJogo->hMapFileJogos[i]);
 		}
-		CloseHandle(partilhaJogo->hRWMutex);
+		CloseHandle(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo);
 		return FALSE;
 	}
 
@@ -99,24 +99,24 @@ BOOL initMemAndSync(PartilhaJogo* partilhaJogo) {
 			UnmapViewOfFile(partilhaJogo->jogos[i]);
 			CloseHandle(partilhaJogo->hMapFileJogos[i]);
 		}
-		CloseHandle(partilhaJogo->hRWMutex);
-		CloseHandle(partilhaJogo->hEvent);
+		CloseHandle(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo);
+		CloseHandle(partilhaJogo->hEventAtualizacaoNoJogo);
 		return FALSE;
 	}
-	partilhaJogo->hSemaforo = CreateSemaphore(
+	partilhaJogo->hSemaforoEnviarAtualizacoesJogo = CreateSemaphore(
 		NULL,
 		0,
 		1,
 		SEMAPHORE_NAME
 	);
-	if (partilhaJogo->hSemaforo == NULL) {
+	if (partilhaJogo->hSemaforoEnviarAtualizacoesJogo == NULL) {
 		_tprintf(_T("ERROR: CreateSemaphore (%d)\n"), GetLastError());
 		for (DWORD i = 0; i < N_JOGADORES; i++) {
 			UnmapViewOfFile(partilhaJogo->jogos[i]);
 			CloseHandle(partilhaJogo->hMapFileJogos[i]);
 		}
-		CloseHandle(partilhaJogo->hRWMutex);
-		CloseHandle(partilhaJogo->hEvent);
+		CloseHandle(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo);
+		CloseHandle(partilhaJogo->hEventAtualizacaoNoJogo);
 		CloseHandle(partilhaJogo->hEventJogosDecorrer);
 		return FALSE;
 	}
@@ -137,8 +137,10 @@ BOOL initMemAndSync(PartilhaJogo* partilhaJogo) {
 			UnmapViewOfFile(partilhaJogo->jogos[i]);
 			CloseHandle(partilhaJogo->hMapFileJogos[i]);
 		}
-		CloseHandle(partilhaJogo->hRWMutex);
-		CloseHandle(partilhaJogo->hEvent);
+
+		CloseHandle(partilhaJogo->hSemaforoEnviarAtualizacoesJogo);
+		CloseHandle(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo);
+		CloseHandle(partilhaJogo->hEventAtualizacaoNoJogo);
 		CloseHandle(partilhaJogo->hEventJogosDecorrer);
 		return FALSE;
 	}
@@ -157,8 +159,9 @@ BOOL initMemAndSync(PartilhaJogo* partilhaJogo) {
 			UnmapViewOfFile(partilhaJogo->jogos[i]);
 			CloseHandle(partilhaJogo->hMapFileJogos[i]);
 		}
-		CloseHandle(partilhaJogo->hRWMutex);
-		CloseHandle(partilhaJogo->hEvent);
+		CloseHandle(partilhaJogo->hSemaforoEnviarAtualizacoesJogo);
+		CloseHandle(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo);
+		CloseHandle(partilhaJogo->hEventAtualizacaoNoJogo);
 		CloseHandle(partilhaJogo->hEventJogosDecorrer);
 		CloseHandle(partilhaJogo->hMapFileBufferCircularMonitorParaServidor);
 		return FALSE;
@@ -177,8 +180,9 @@ BOOL initMemAndSync(PartilhaJogo* partilhaJogo) {
 			UnmapViewOfFile(partilhaJogo->jogos[i]);
 			CloseHandle(partilhaJogo->hMapFileJogos[i]);
 		}
-		CloseHandle(partilhaJogo->hRWMutex);
-		CloseHandle(partilhaJogo->hEvent);
+		CloseHandle(partilhaJogo->hSemaforoEnviarAtualizacoesJogo);
+		CloseHandle(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo);
+		CloseHandle(partilhaJogo->hEventAtualizacaoNoJogo);
 		CloseHandle(partilhaJogo->hEventJogosDecorrer);
 		UnmapViewOfFile(partilhaJogo->bufferCircularMonitorParaServidor);
 		CloseHandle(partilhaJogo->hMapFileBufferCircularMonitorParaServidor);
@@ -197,9 +201,10 @@ BOOL initMemAndSync(PartilhaJogo* partilhaJogo) {
 			UnmapViewOfFile(partilhaJogo->jogos[i]);
 			CloseHandle(partilhaJogo->hMapFileJogos[i]);
 		}
+		CloseHandle(partilhaJogo->hSemaforoEnviarAtualizacoesJogo);
 		CloseHandle(partilhaJogo->hMutexBufferCircularMonitorParaServidor);
-		CloseHandle(partilhaJogo->hRWMutex);
-		CloseHandle(partilhaJogo->hEvent);
+		CloseHandle(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo);
+		CloseHandle(partilhaJogo->hEventAtualizacaoNoJogo);
 		CloseHandle(partilhaJogo->hEventJogosDecorrer);
 		UnmapViewOfFile(partilhaJogo->bufferCircularMonitorParaServidor);
 		CloseHandle(partilhaJogo->hMapFileBufferCircularMonitorParaServidor);
@@ -218,9 +223,10 @@ BOOL initMemAndSync(PartilhaJogo* partilhaJogo) {
 			CloseHandle(partilhaJogo->hMapFileJogos[i]);
 			UnmapViewOfFile(partilhaJogo->jogos[i]);
 		}
+		CloseHandle(partilhaJogo->hSemaforoEnviarAtualizacoesJogo);
 		CloseHandle(partilhaJogo->hMutexBufferCircularMonitorParaServidor);
-		CloseHandle(partilhaJogo->hRWMutex);
-		CloseHandle(partilhaJogo->hEvent);
+		CloseHandle(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo);
+		CloseHandle(partilhaJogo->hEventAtualizacaoNoJogo);
 		CloseHandle(partilhaJogo->hEventJogosDecorrer);
 		UnmapViewOfFile(partilhaJogo->bufferCircularMonitorParaServidor);
 		CloseHandle(partilhaJogo->hMapFileBufferCircularMonitorParaServidor);
@@ -241,9 +247,10 @@ BOOL initMemAndSync(PartilhaJogo* partilhaJogo) {
 			CloseHandle(partilhaJogo->hMapFileJogos[i]);
 			UnmapViewOfFile(partilhaJogo->jogos[i]);
 		}
+		CloseHandle(partilhaJogo->hSemaforoEnviarAtualizacoesJogo);
 		CloseHandle(partilhaJogo->hMutexBufferCircularMonitorParaServidor);
-		CloseHandle(partilhaJogo->hRWMutex);
-		CloseHandle(partilhaJogo->hEvent);
+		CloseHandle(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo);
+		CloseHandle(partilhaJogo->hEventAtualizacaoNoJogo);
 		CloseHandle(partilhaJogo->hEventJogosDecorrer);
 		UnmapViewOfFile(partilhaJogo->bufferCircularMonitorParaServidor);
 		CloseHandle(partilhaJogo->hMapFileBufferCircularMonitorParaServidor);

@@ -9,8 +9,8 @@ BOOL WINAPI recebeMapaJogoDoServidor(LPVOID p) {
 
 	while (1) {
 
-		WaitForSingleObject(partilhaJogo->hEvent, INFINITE);
-		WaitForSingleObject(partilhaJogo->hRWMutex, INFINITE);
+		WaitForSingleObject(partilhaJogo->hEventAtualizacaoNoJogo, INFINITE);
+		WaitForSingleObject(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo, INFINITE);
 
 		limpaEcra();
 
@@ -18,7 +18,7 @@ BOOL WINAPI recebeMapaJogoDoServidor(LPVOID p) {
 			if (partilhaJogo->jogos[i]->aJogar)
 				desenharMapaJogo(partilhaJogo->jogos[i]);
 
-		ReleaseMutex(partilhaJogo->hRWMutex);
+		ReleaseMutex(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo);
 
 		Sleep(1000);
 	}
