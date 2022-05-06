@@ -22,11 +22,14 @@ BOOL WINAPI atualizaMapaJogoParaMonitor(LPVOID p) {
 
 BOOL WINAPI decorrerJogo(LPVOID p) {
 	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
+	BOOL atualizaUmaVez = FALSE;
 
 	while (1) {
 
 		WaitForSingleObject(partilhaJogo->hEventJogosDecorrer, INFINITE);
 
+		//quando todos os jogos estão em pausa, serão atualizados os ecrãs dos monitores uma vez de 
+		// forma a mostrar ao utilizador a mensagem que os jogos estão em pausa
 		BOOL sofreuAlteracoes = FALSE;
 
 		WaitForSingleObject(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo, INFINITE);
@@ -62,8 +65,10 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 
 		ReleaseMutex(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo);
 
-		if (sofreuAlteracoes)
+		if (sofreuAlteracoes) {
+			atualizaUmaVez = FALSE;
 			ReleaseSemaphore(partilhaJogo->hSemaforoEnviarAtualizacoesJogo, 1, NULL);
+		}
 
 		BOOL todosJogosParados = TRUE;
 
@@ -73,6 +78,11 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 		
 		if (todosJogosParados)
 			ResetEvent(partilhaJogo->hEventAtualizacaoNoJogo);
+
+		if (!todosJogosParados && !atualizaUmaVez && !sofreuAlteracoes) {
+			atualizaUmaVez = TRUE;
+			ReleaseSemaphore(partilhaJogo->hSemaforoEnviarAtualizacoesJogo, 1, NULL);
+		}
 
 		Sleep(1000);
 	}
