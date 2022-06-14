@@ -144,7 +144,7 @@ DWORD WINAPI leMensagemUtilizador(LPVOID p) {
 					inicializaJogo(partilhaJogo->jogos[i], partilhaJogo->definicoesJogo);
 					
 					if (i == 0) {
-
+						/*
 						//debug
 						//jogo com solução
 						for (DWORD j = 0; j < partilhaJogo->jogos[i]->nLinhas; j++)
@@ -170,7 +170,7 @@ DWORD WINAPI leMensagemUtilizador(LPVOID p) {
 						partilhaJogo->jogos[i]->mapaJogo[4][3] = tuboHorizontal;
 						partilhaJogo->jogos[i]->mapaJogo[4][4] = tuboDestinoAgua;
 						//fim debug
-
+						*/
 						SetEvent(partilhaJogo->hEventJogosDecorrer);
 						ReleaseSemaphore(partilhaJogo->hSemaforoEnviarAtualizacoesJogo, 1, NULL);
 					}
