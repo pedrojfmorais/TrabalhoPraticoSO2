@@ -22,7 +22,7 @@ BOOL WINAPI atualizaMapaJogoParaMonitor(LPVOID p) {
 
 BOOL WINAPI decorrerJogo(LPVOID p) {
 	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
-	BOOL atualizaUmaVez = FALSE;
+	BOOL atualizouAposPausarJogo = FALSE;
 
 	while (1) {
 
@@ -66,7 +66,7 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 		ReleaseMutex(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo);
 
 		if (sofreuAlteracoes) {
-			atualizaUmaVez = FALSE;
+			atualizouAposPausarJogo = FALSE;
 			ReleaseSemaphore(partilhaJogo->hSemaforoEnviarAtualizacoesJogo, 1, NULL);
 		}
 
@@ -77,10 +77,10 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 				todosJogosParados = FALSE;
 		
 		if (todosJogosParados)
-			ResetEvent(partilhaJogo->hEventAtualizacaoNoJogo);
+			ResetEvent(partilhaJogo->hEventJogosDecorrer);
 
-		if (!todosJogosParados && !atualizaUmaVez && !sofreuAlteracoes) {
-			atualizaUmaVez = TRUE;
+		if (!todosJogosParados && !atualizouAposPausarJogo && !sofreuAlteracoes) {
+			atualizouAposPausarJogo = TRUE;
 			ReleaseSemaphore(partilhaJogo->hSemaforoEnviarAtualizacoesJogo, 1, NULL);
 		}
 
@@ -120,7 +120,6 @@ DWORD WINAPI leMensagemUtilizador(LPVOID p) {
 	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
 	BufferCell cell;
 
-	//divir os
 	TCHAR* command;
 	TCHAR* next_token = NULL;
 

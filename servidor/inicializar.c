@@ -93,11 +93,4 @@ void inicializaServidor(int argc, TCHAR* argv[], PartilhaJogo* partilhaJogo) {
 	{
 		partilhaJogo->jogos[i]->idJogador = i + 1;
 	}
-
-	//debug
-	/*for (DWORD i = 0; i < N_JOGADORES; i++)
-	{
-		inicializaJogo(partilhaJogo->jogos[i], partilhaJogo->definicoesJogo);
-	}
-	*/
 }
