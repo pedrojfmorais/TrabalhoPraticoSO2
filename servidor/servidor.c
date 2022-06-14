@@ -50,8 +50,9 @@ int _tmain(int argc, TCHAR* argv[]) {
 	inicializaServidor(argc, argv, &partilhaJogo);
 
 	ThreadsServidor threadsServidor;
+	threadsServidor.deveContinuar = &partilhaJogo.deveContinuar;
 	threadsServidor.hEventFecharTudo = partilhaJogo.hEventFecharTudo;
-
+	
 	threadsServidor.hThreads[0] = CreateThread(NULL, 0, atualizaMapaJogoParaMonitor, &partilhaJogo, 0, NULL);
 	threadsServidor.hThreads[1] = CreateThread(NULL, 0, decorrerJogo, &partilhaJogo, 0, NULL);
 	threadsServidor.hThreads[2] = CreateThread(NULL, 0, recebeMensagemMonitor, &partilhaJogo, 0, NULL);

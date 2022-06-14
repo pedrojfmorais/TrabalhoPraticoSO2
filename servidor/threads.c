@@ -7,12 +7,19 @@ BOOL WINAPI atualizaMapaJogoParaMonitor(LPVOID p) {
 
 	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
 
-	while (1) {
+	while (partilhaJogo->deveContinuar) {
 
 		WaitForSingleObject(partilhaJogo->hSemaforoEnviarAtualizacoesJogo, INFINITE);
 
+		LARGE_INTEGER liDueTime;
+		liDueTime.QuadPart = -5000000LL;
+
 		SetEvent(partilhaJogo->hEventAtualizacaoNoJogo);
-		Sleep(500);
+		if (!SetWaitableTimer(partilhaJogo->hTimer, &liDueTime, 0, NULL, NULL, 0)) {
+			return FALSE;
+		}
+		WaitForSingleObject(partilhaJogo->hTimer, INFINITE);
+		//Sleep(500);
 		ResetEvent(partilhaJogo->hEventAtualizacaoNoJogo);
 
 	}
@@ -24,7 +31,7 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
 	BOOL atualizouAposPausarJogo = FALSE;
 
-	while (1) {
+	while (partilhaJogo->deveContinuar) {
 
 		WaitForSingleObject(partilhaJogo->hEventJogosDecorrer, INFINITE);
 
@@ -92,7 +99,7 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 BOOL WINAPI recebeMensagemMonitor(LPVOID p) {
 	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
 
-	while (1) {
+	while (partilhaJogo->deveContinuar) {
 
 		WaitForSingleObject(partilhaJogo->hSemaforoLeituraBufferCircularMonitorParaServidor, INFINITE);
 		WaitForSingleObject(partilhaJogo->hMutexBufferCircularMonitorParaServidor, INFINITE);
@@ -123,7 +130,7 @@ DWORD WINAPI leMensagemUtilizador(LPVOID p) {
 	TCHAR* command;
 	TCHAR* next_token = NULL;
 
-	while (1) {
+	while (partilhaJogo->deveContinuar) {
 
 		_tprintf(_T("Insira um comando: "));
 		_getts_s(cell.mensagem, TAM);
@@ -226,6 +233,8 @@ DWORD WINAPI acabarThreads(LPVOID p) {
 	ThreadsServidor* threadsServidor = (ThreadsServidor*)p;
 
 	WaitForSingleObject(threadsServidor->hEventFecharTudo, INFINITE);
+
+	//*threadsServidor->deveContinuar = 0;
 
 	for (DWORD i = 0; i < N_THREADS_SERVIDOR; i++)
 		TerminateThread(threadsServidor->hThreads[i], 0);

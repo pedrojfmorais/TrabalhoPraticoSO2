@@ -258,6 +258,29 @@ BOOL initMemAndSync(PartilhaJogo* partilhaJogo) {
 		CloseHandle(partilhaJogo->hSemaforoLeituraBufferCircularMonitorParaServidor);
 		return FALSE;
 	}
+	// Create an unnamed waitable timer.
+
+	partilhaJogo->hTimer = CreateWaitableTimer(NULL, TRUE, WAITABLE_TIMER);
+
+	if (partilhaJogo->hTimer == NULL)
+	{
+		_tprintf(_T("ERROR: CreateWaitableTimer (%d)\n"), GetLastError());
+		for (DWORD i = 0; i < N_JOGADORES; i++) {
+			CloseHandle(partilhaJogo->hMapFileJogos[i]);
+			UnmapViewOfFile(partilhaJogo->jogos[i]);
+		}
+		CloseHandle(partilhaJogo->hSemaforoEnviarAtualizacoesJogo);
+		CloseHandle(partilhaJogo->hMutexBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo);
+		CloseHandle(partilhaJogo->hEventAtualizacaoNoJogo);
+		CloseHandle(partilhaJogo->hEventJogosDecorrer);
+		UnmapViewOfFile(partilhaJogo->bufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hMapFileBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hSemaforoEscritaBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hSemaforoLeituraBufferCircularMonitorParaServidor);
+		CloseHandle(partilhaJogo->hEventFecharTudo);
+		return FALSE;
+	}
 
 	return TRUE;
 }

@@ -7,7 +7,7 @@ BOOL WINAPI recebeMapaJogoDoServidor(LPVOID p) {
 
 	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
 
-	while (1) {
+	while (partilhaJogo->deveContinuar) {
 
 		WaitForSingleObject(partilhaJogo->hEventAtualizacaoNoJogo, INFINITE);
 		WaitForSingleObject(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo, INFINITE);
@@ -29,7 +29,7 @@ DWORD WINAPI enviaMensagemServidor(LPVOID p) {
 	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
 	BufferCell cell;
 
-	while (1) {
+	while (partilhaJogo->deveContinuar) {
 		
 		_tprintf(_T("Insira um comando: "));
 		_getts_s(cell.mensagem, TAM);
@@ -57,6 +57,8 @@ DWORD WINAPI acabarThreads(LPVOID p) {
 
 	WaitForSingleObject(threadsMonitor->hEventFecharTudo, INFINITE);
 
+	//*threadsMonitor->deveContinuar = 0;
+	
 	for (DWORD i = 0; i < N_THREADS_MONITOR; i++)
 		TerminateThread(threadsMonitor->hThreads[i], 0);
 

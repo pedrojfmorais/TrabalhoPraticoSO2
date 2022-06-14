@@ -59,6 +59,8 @@ void inicializaServidor(int argc, TCHAR* argv[], PartilhaJogo* partilhaJogo) {
 	TCHAR nomeChaves[3][TAM] = { _T("nLinhas"), _T("nColunas"), _T("tempoAguaComecaFluir") };
 	DWORD definicoesJogo[3];
 
+	partilhaJogo->deveContinuar = 1;
+
 	if (argc == 1) {
 		//Lê no registry
 		if (!lerDoRegistryDadosMapaJogo(nomeChaves, definicoesJogo))

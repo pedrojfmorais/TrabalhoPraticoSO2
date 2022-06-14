@@ -32,6 +32,7 @@ DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max);
 #define MUTEX_NAME_PARTILHA_MAPA_JOGO _T("MutexAtualizarMapaJogo")
 #define EVENT_NAME_PARTILHA_MAPA_JOGO _T("NovaAtualizacaoMapaJogo")
 #define EVENT_NAME_JOGOS_A_DECORRER _T("ExistemJogosDecorrer")
+#define WAITABLE_TIMER _T("EsperarPelosMonitores")
 #define MSGTEXT_SZ 1000
 
 #define MSGBUFSIZE sizeof(DadosJogo)
@@ -149,20 +150,32 @@ typedef struct {
 	HANDLE hSemaforoLeituraBufferCircularMonitorParaServidor;
 	HANDLE hSemaforoEscritaBufferCircularMonitorParaServidor;
 
+	int deveContinuar;
+
+	HANDLE hTimer;
+
 } PartilhaJogo;
 
 //Struct para guardar todas as threads do servidor
 #define N_THREADS_SERVIDOR 4
 typedef struct {
 	HANDLE hThreads[N_THREADS_SERVIDOR];
+	
 	HANDLE hEventFecharTudo;
+	
+	int* deveContinuar;
+
 } ThreadsServidor;
 
 //Struct para guardar todas as threads do monitor
 #define N_THREADS_MONITOR 2
 typedef struct {
 	HANDLE hThreads[N_THREADS_MONITOR];
+	
 	HANDLE hEventFecharTudo;
+	
+	int* deveContinuar;
+
 } ThreadsMonitor;
 
 //definição de keyword usada para importar funções da DLL

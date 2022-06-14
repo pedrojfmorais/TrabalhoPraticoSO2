@@ -45,6 +45,7 @@ int _tmain(int argc, TCHAR* argv[]) {
 		return 0;
 
 	ThreadsMonitor threadsMonitor;
+	threadsMonitor.deveContinuar = &partilhaJogo.deveContinuar;
 	threadsMonitor.hEventFecharTudo = partilhaJogo.hEventFecharTudo;
 
 	threadsMonitor.hThreads[0] = CreateThread(NULL, 0, recebeMapaJogoDoServidor, &partilhaJogo, 0, NULL);
