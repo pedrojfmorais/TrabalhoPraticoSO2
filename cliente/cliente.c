@@ -1,5 +1,7 @@
 ﻿#include "..\\utils_so2_tp\utils_so2_tp.h"
 
+// TESTES
+
 // Retirado da internet "https://www.codewithc.com/change-text-color-in-codeblocks-console-window/"
 void SetColor(int ForgC)
 {
@@ -313,7 +315,29 @@ void desenharMapaJogo(DadosJogo* dadosJogo) {
 		SetColor(CorBranco);
 	}
 }
+// FIM TESTES
 
+void copiarTabuleiroJogoRecebido(DadosJogo recebido, DadosJogo* resultadoCopia) {
+	resultadoCopia->aJogar = recebido.aJogar;
+	resultadoCopia->coordenadaAtualAgua[0] = recebido.coordenadaAtualAgua[0];
+	resultadoCopia->coordenadaAtualAgua[1] = recebido.coordenadaAtualAgua[1];
+	resultadoCopia->coordenadasDestinoAgua[0] = recebido.coordenadasDestinoAgua[0];
+	resultadoCopia->coordenadasDestinoAgua[1] = recebido.coordenadasDestinoAgua[1];
+	resultadoCopia->coordenadasOrigemAgua[0] = recebido.coordenadasOrigemAgua[0];
+	resultadoCopia->coordenadasOrigemAgua[1] = recebido.coordenadasOrigemAgua[1];
+	resultadoCopia->ganhou = recebido.ganhou;
+	resultadoCopia->idJogador = recebido.idJogador;
+	resultadoCopia->jogoPausado = recebido.jogoPausado;
+	resultadoCopia->modoAleatorioLigado = recebido.modoAleatorioLigado;
+	resultadoCopia->nColunas = recebido.nColunas;
+	resultadoCopia->nLinhas = recebido.nLinhas;
+	resultadoCopia->perdeu = recebido.perdeu;
+	resultadoCopia->pontuacao = recebido.pontuacao;
+	resultadoCopia->proximaPeca = recebido.proximaPeca;
+	resultadoCopia->tempoAguaComecaFluir = recebido.tempoAguaComecaFluir;
+	resultadoCopia->tempoDecorrido = recebido.tempoDecorrido;
+	resultadoCopia->tempoPararAgua = recebido.tempoPararAgua;
+}
 
 int _tmain(int argc, TCHAR* argv[]) {
 
@@ -335,49 +359,25 @@ int _tmain(int argc, TCHAR* argv[]) {
 	threadsCliente.deveContinuar = &partilhaJogo.deveContinuar;
 	threadsCliente.hMutex = CreateMutex(NULL, FALSE, NULL);
 
-    _tprintf(TEXT("[LEITOR] Esperar pelo pipe '%s' (WaitNamedPipe)\n"),
-        PIPE_NAME);
     if (!WaitNamedPipe(PIPE_NAME, NMPWAIT_WAIT_FOREVER)) {
-        _tprintf(TEXT("[ERRO] Ligar ao pipe '%s'! (WaitNamedPipe)\n"), PIPE_NAME);
         exit(-1);
     }
-    _tprintf(TEXT("[LEITOR] Ligação ao pipe do escritor... (CreateFile)\n"));
-    hPipe = CreateFile(PIPE_NAME, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING,
+
+    hPipe = CreateFile(PIPE_NAME, GENERIC_READ, 0, NULL, OPEN_EXISTING,
         FILE_ATTRIBUTE_NORMAL, NULL);
     if (hPipe == NULL) {
-        _tprintf(TEXT("[ERRO] Ligar ao pipe '%s'! (CreateFile)\n"), PIPE_NAME);
         exit(-1);
     }
-    _tprintf(TEXT("[LEITOR] Liguei-me...\n"));
+
 	DadosJogo recebido, dados;
     while (1) {
         ret = ReadFile(hPipe, &recebido, sizeof(DadosJogo), &n, NULL);
         
         if (!ret || !n) {
-            _tprintf(TEXT("[LEITOR] %d %d... (ReadFile)\n"), ret, n);
             break;
         }
-        _tprintf(TEXT("[LEITOR] Recebi %d bytes: qwe... (ReadFile)\n"), n);	
 		
-		dados.aJogar = recebido.aJogar;
-		dados.coordenadaAtualAgua[0] = recebido.coordenadaAtualAgua[0];
-		dados.coordenadaAtualAgua[1] = recebido.coordenadaAtualAgua[1];
-		dados.coordenadasDestinoAgua[0] = recebido.coordenadasDestinoAgua[0];
-		dados.coordenadasDestinoAgua[1] = recebido.coordenadasDestinoAgua[1];
-		dados.coordenadasOrigemAgua[0] = recebido.coordenadasOrigemAgua[0];
-		dados.coordenadasOrigemAgua[1] = recebido.coordenadasOrigemAgua[1];
-		dados.ganhou = recebido.ganhou;
-		dados.idJogador = recebido.idJogador;
-		dados.jogoPausado = recebido.jogoPausado;
-		dados.modoAleatorioLigado = recebido.modoAleatorioLigado;
-		dados.nColunas = recebido.nColunas;
-		dados.nLinhas = recebido.nLinhas;
-		dados.perdeu = recebido.perdeu;
-		dados.pontuacao = recebido.pontuacao;
-		dados.proximaPeca = recebido.proximaPeca;
-		dados.tempoAguaComecaFluir = recebido.tempoAguaComecaFluir;
-		dados.tempoDecorrido = recebido.tempoDecorrido;
-		dados.tempoPararAgua = recebido.tempoPararAgua;
+		copiarTabuleiroJogoRecebido(recebido, &dados);
 
 		for (int j = 0; j < dados.nLinhas; j++)
 			for (int k = 0; k < dados.nColunas; k++)
@@ -386,12 +386,6 @@ int _tmain(int argc, TCHAR* argv[]) {
 
         if (dados.aJogar)
             desenharMapaJogo(&dados);
-			
-        if (!WriteFile(hPipe, &dados, sizeof(PartilhaJogoServidorCliente), &n, NULL))
-            _tprintf(TEXT("[Erro] Escrever Pipe (WriteFile)\n"));
-        else
-            _tprintf(TEXT("[LEITOR] Escrevi %d bytes ao escritor: '%s'... (WriteFile)\n"), n, buf);
-
     }
     CloseHandle(hPipe);
 

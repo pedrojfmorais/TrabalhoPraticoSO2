@@ -14,7 +14,7 @@ BOOL WINAPI criaNamedPipeParaClientesTabuleiroJogo(LPVOID p) {
 
 		hPipe = CreateNamedPipe(
 			PIPE_NAME, 
-			PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
+			PIPE_ACCESS_OUTBOUND | FILE_FLAG_OVERLAPPED,
 			PIPE_WAIT | PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE
 			, N_JOGADORES, 
 			sizeof(PartilhaJogoServidorCliente),
@@ -76,11 +76,6 @@ DWORD WINAPI clienteConectaNamedPipe(LPVOID p) {
 			if (dados->hPipes[i].ativo) {
 				if (!WriteFile(dados->hPipes[i].hInstancia, dados->jogos[i], sizeof(DadosJogo), &n, NULL)) {
 					exit(-1);
-				}
-				ZeroMemory(read, sizeof(read));
-				ret = ReadFile(dados->hPipes[i].hInstancia, dados->jogos[i], sizeof(DadosJogo), &n, NULL);
-				if (!ret || !n) {
-					break;
 				}
 			}
 			ReleaseMutex(dados->hReadWriteMutexAtualizacaoNoJogo);
