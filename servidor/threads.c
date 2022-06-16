@@ -3,6 +3,83 @@
 #include "comandosMonitor.h"
 #include "inicializar.h"
 
+BOOL WINAPI criaNamedPipes(LPVOID p) {
+	BOOL fConnected;
+	DWORD dwThreadId;
+	HANDLE hPipe, hThread;
+	hPipe = CreateNamedPipe(
+		pipeName,
+		PIPE_ACCESS_DUPLEX, // acesso read/write (duplex)
+		PIPE_TYPE_MESSAGE | // pipe to tipo message
+		PIPE_READMODE_MESSAGE | // modo message-read
+		PIPE_WAIT, // modo “blocking”
+		PIPE_UNLIMITED_INSTANCES, // max. instâncias
+		BUFSIZE, // tam. buffer output
+		BUFSIZE, // tam. Buffer input
+		NMPWAIT_USE_DEFAULT_WAIT, // time-out para o cliente
+		NULL); // atributos segurança default
+	);
+
+	if (hPipe == INVALID_HANDLE_VALUE) {
+		_tprintf(_T("A criação do pipe falhou"));
+		return FALSE;
+	}
+
+	// Aguarda a ligação de um cliente
+	fConnected = ConnectNamedPipe(hPipe, NULL);
+	if (!fConnected && (GetLastError() == ERROR_PIPE_CONNECTED))
+		fConnected = TRUE;
+	if (fConnected) {
+		AtendeCliente(hPipe);
+	}
+	else{
+		CloseHandle(hPipe);
+	}
+	
+	return TRUE;
+}
+
+void AtendeCliente(HANDLE hPipe) {
+	TCHAR buf[256];
+	DWORD n;
+	BOOL fSuccess;
+	
+	//espera que exista um name pipe para ler do mesmo
+	if (!WaitNamedPipe(pipeName, NMPWAIT_WAIT_FOREVER)) {
+		_tprintf(_T("[ERRO] Ligar ao pipe %s"), pipeName)
+	}
+	
+	//Ligação ao pipe do cliente
+
+	hPipe = CreateFile(pipeName,
+		GENERIC_READ,
+		0,
+		NULL,
+		OPEN_EXISTING,
+		FILE_ATTRIBUTE_NORMAL,
+		NULL);
+	
+	if (hPipe == NULL) {
+		_tprintf(_T("Erro ao ligar a pipe $s"), pipeName);
+		return FALSE;
+	}
+
+	while (1) {
+		//ler as mensagens
+		fSuccess = ReadFile(hPipe, buf, sizeof(buf), &n, NULL);
+
+		//TERMINA corretamente a string
+		buf[n / sizeof(TCHAR) = '\0';
+		
+		if (!fSuccess || !n) {
+			_tprintf(_T("%d %d"), fSuccess, n);
+			break;
+		}
+		_tprintf(_T("Recebi %d bytes: %s"), n, buf);
+	}
+	CloseHandle(hPipe);
+}
+
 BOOL WINAPI atualizaMapaJogoParaMonitor(LPVOID p) {
 
 	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;

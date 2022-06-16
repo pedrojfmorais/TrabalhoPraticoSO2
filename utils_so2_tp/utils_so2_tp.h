@@ -22,6 +22,8 @@ DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max);
 #define N_JOGADORES 2
 #define N_SEGUNDOS_AVANCO_AGUA 2
 #define caminhoRegistry _T("software\\so2\\tp\\")
+#define pipeName _T("\\\\.\\pipe\\pipeServidor")
+
 
 //Evento para o fecho de todas as aplicações
 #define EVENT_FECHAR_TUDO _T("fecharTudo")
@@ -177,6 +179,20 @@ typedef struct {
 	int* deveContinuar;
 
 } ThreadsMonitor;
+
+//Struct para os namedPipe
+typedef struct {
+	HANDLE hPipe;
+	OVERLAPPED overlap; //estrutura overlapped para uso asincrono
+	BOOL ativo; //para ver se já tem cliente ou não
+} DadosPipe;
+
+typedef struct {
+	DadosPipe hPipes[N_JOGADORES];
+	HANDLE hEvents[N_JOGADORES];
+	HANDLE hMutex;
+	int* deveContinuar;
+} ThreadsCliente;
 
 //definição de keyword usada para importar funções da DLL
 typedef BOOL(*PFUNC_TypeBool_NoArguments) ();
