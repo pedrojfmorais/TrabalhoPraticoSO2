@@ -7,4 +7,4 @@ DWORD getProximaPecaSequencia(DWORD pecaAnterior);
 void alternaModoAleatorioPeca(DadosJogo* dadosJogo);
 BOOL colocaParede_x_y(DWORD x, DWORD y, DadosJogo* jogo);
 void setTempoPararAgua(DWORD segundos, DadosJogo* dadosJogo);
-void trataMensagem(PartilhaJogo* partilhaJogo, TCHAR* comando);
+void trataMensagem(PartilhaJogoServidorMonitor* partilhaJogo, TCHAR* comando);

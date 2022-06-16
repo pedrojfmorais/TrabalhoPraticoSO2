@@ -42,21 +42,22 @@ int _tmain(int argc, TCHAR* argv[]) {
 	PFUNC_TypeBool_PointerPartilhaMapaJogo initMemAndSync;
 	initMemAndSync = (PFUNC_TypeBool_PointerPartilhaMapaJogo)GetProcAddress(hLibrary, "initMemAndSync");
 
-	PartilhaJogo partilhaJogo;
+	PartilhaJogoServidorMonitor partilhaJogoMonitor;
+	PartilhaJogoServidorCliente partilhaJogoClientes;
 
-	if (!initMemAndSync(&partilhaJogo))
+	if (!initMemAndSync(&partilhaJogoMonitor))
 		return 1;
 
-	inicializaServidor(argc, argv, &partilhaJogo);
+	inicializaServidor(argc, argv, &partilhaJogoMonitor, &partilhaJogoClientes);
 
 	ThreadsServidor threadsServidor;
-	threadsServidor.deveContinuar = &partilhaJogo.deveContinuar;
-	threadsServidor.hEventFecharTudo = partilhaJogo.hEventFecharTudo;
+	threadsServidor.deveContinuar = &partilhaJogoMonitor.deveContinuar;
+	threadsServidor.hEventFecharTudo = partilhaJogoMonitor.hEventFecharTudo;
 	
-	threadsServidor.hThreads[0] = CreateThread(NULL, 0, atualizaMapaJogoParaMonitor, &partilhaJogo, 0, NULL);
-	threadsServidor.hThreads[1] = CreateThread(NULL, 0, decorrerJogo, &partilhaJogo, 0, NULL);
-	threadsServidor.hThreads[2] = CreateThread(NULL, 0, recebeMensagemMonitor, &partilhaJogo, 0, NULL);
-	threadsServidor.hThreads[3] = CreateThread(NULL, 0, leMensagemUtilizador, &partilhaJogo, 0, NULL);
+	threadsServidor.hThreads[0] = CreateThread(NULL, 0, atualizaMapaJogoParaMonitor, &partilhaJogoMonitor, 0, NULL);
+	threadsServidor.hThreads[1] = CreateThread(NULL, 0, decorrerJogo, &partilhaJogoMonitor, 0, NULL);
+	threadsServidor.hThreads[2] = CreateThread(NULL, 0, recebeMensagemMonitor, &partilhaJogoMonitor, 0, NULL);
+	threadsServidor.hThreads[3] = CreateThread(NULL, 0, leMensagemUtilizador, &partilhaJogoMonitor, 0, NULL);
 	HANDLE hThreadParaThreads = CreateThread(NULL, 0, acabarThreads, &threadsServidor, 0, NULL);
 
 	if (threadsServidor.hThreads[0] == NULL || threadsServidor.hThreads[1] == NULL || threadsServidor.hThreads[2] == NULL || 
@@ -65,24 +66,88 @@ int _tmain(int argc, TCHAR* argv[]) {
 		return 1;
 	}
 
+	// Testes
+
+	HANDLE hThreadNamedPipe = CreateThread(NULL, 0, criaNamedPipeParaClientesTabuleiroJogo, &partilhaJogoClientes, 0, NULL);
+	HANDLE hThreadNamedPipe_ = CreateThread(NULL, 0, clienteConectaNamedPipe, &partilhaJogoClientes, 0, NULL);
+	
+	/*
+	DWORD numClientes = 0, offset, nBytes;
+	for (int i = 0; i < N_JOGADORES; ++i) {
+
+		HANDLE hPipe;
+		HANDLE hEventTemp;
+
+		_tprintf(TEXT("[ESCRITOR] Criar uma cópia do pipe '%s' ...(CreateNamedPipe)\n"), PIPE_NAME);
+		hPipe = CreateNamedPipe(
+			PIPE_NAME,
+			PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
+			PIPE_WAIT | PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE
+			, N_JOGADORES,
+			sizeof(PartilhaJogoServidorCliente),
+			sizeof(PartilhaJogoServidorCliente),
+			NMPWAIT_USE_DEFAULT_WAIT,
+			NULL
+		);
+		if (hPipe == INVALID_HANDLE_VALUE) {
+			_tprintf(TEXT("[ERRO] Criar Named Pipe! (CreateNamedPipe)"));
+			exit(-1);
+		}
+
+		hEventTemp = CreateEvent(NULL, TRUE, FALSE, NULL);
+		if (hEventTemp == NULL) {
+			_tprintf(TEXT("[ERRO] Criar Event! (CreateEvent)"));
+			exit(-1);
+		}
+
+		ZeroMemory(&partilhaJogoClientes.hPipe[i].overlap, sizeof(&partilhaJogoClientes.hPipe[i].overlap));
+		partilhaJogoClientes.hPipe[i].hInstancia = hPipe;
+		partilhaJogoClientes.hPipe[i].overlap.hEvent = hEventTemp;
+		partilhaJogoClientes.hPipe[i].ativo = FALSE;
+		partilhaJogoClientes.hEvents[i] = hEventTemp;
+
+		if (ConnectNamedPipe(hPipe, &partilhaJogoClientes.hPipe[i].overlap)) {
+			_tprintf(TEXT("[ERRO] Ligação ao leitor! (ConnectNamedPipe)\n"));
+			exit(-1);
+		}
+	}
+	
+	while (partilhaJogoClientes.deveContinuar && numClientes < N_JOGADORES) {
+		_tprintf(_T("asd"));
+		offset = WaitForMultipleObjects(N_JOGADORES, partilhaJogoClientes.hEvents, FALSE, INFINITE);
+		DWORD i = offset - WAIT_OBJECT_0;
+
+		if (i >= 0 && i < N_JOGADORES) {
+			if (GetOverlappedResult(partilhaJogoClientes.hPipe[i].hInstancia, &partilhaJogoClientes.hPipe[i].overlap, &nBytes, FALSE)) {
+				ResetEvent(partilhaJogoClientes.hEvents[i]);
+				WaitForSingleObject(partilhaJogoClientes.hReadWriteMutexAtualizacaoNoJogo, INFINITE);
+				partilhaJogoClientes.hPipe[i].ativo = TRUE;
+				ReleaseMutex(partilhaJogoClientes.hReadWriteMutexAtualizacaoNoJogo);
+			}
+			numClientes++;
+		}
+	}
+	*/
+
+	// Fim testes
 	WaitForMultipleObjects(N_THREADS_SERVIDOR, threadsServidor.hThreads, TRUE, INFINITE);
 	WaitForSingleObject(hThreadParaThreads, INFINITE);
 
 	for (DWORD i = 0; i < N_JOGADORES; i++) {
-		CloseHandle(partilhaJogo.hMapFileJogos[i]);
-		UnmapViewOfFile(partilhaJogo.jogos[i]);
+		CloseHandle(partilhaJogoMonitor.hMapFileJogos[i]);
+		UnmapViewOfFile(partilhaJogoMonitor.jogos[i]);
 	}
-	CloseHandle(partilhaJogo.hReadWriteMutexAtualizacaoNoJogo);
-	CloseHandle(partilhaJogo.hEventAtualizacaoNoJogo);
-	CloseHandle(partilhaJogo.hSemaforoEnviarAtualizacoesJogo);
-	CloseHandle(partilhaJogo.hEventJogosDecorrer);
-	CloseHandle(partilhaJogo.hEventFecharTudo);
+	CloseHandle(partilhaJogoMonitor.hReadWriteMutexAtualizacaoNoJogo);
+	CloseHandle(partilhaJogoMonitor.hEventAtualizacaoNoJogo);
+	CloseHandle(partilhaJogoMonitor.hSemaforoEnviarAtualizacoesJogo);
+	CloseHandle(partilhaJogoMonitor.hEventJogosDecorrer);
+	CloseHandle(partilhaJogoMonitor.hEventFecharTudo);
 
-	UnmapViewOfFile(partilhaJogo.bufferCircularMonitorParaServidor);
-	CloseHandle(partilhaJogo.hMutexBufferCircularMonitorParaServidor);
-	CloseHandle(partilhaJogo.hMapFileBufferCircularMonitorParaServidor);
-	CloseHandle(partilhaJogo.hSemaforoEscritaBufferCircularMonitorParaServidor);
-	CloseHandle(partilhaJogo.hSemaforoLeituraBufferCircularMonitorParaServidor);
+	UnmapViewOfFile(partilhaJogoMonitor.bufferCircularMonitorParaServidor);
+	CloseHandle(partilhaJogoMonitor.hMutexBufferCircularMonitorParaServidor);
+	CloseHandle(partilhaJogoMonitor.hMapFileBufferCircularMonitorParaServidor);
+	CloseHandle(partilhaJogoMonitor.hSemaforoEscritaBufferCircularMonitorParaServidor);
+	CloseHandle(partilhaJogoMonitor.hSemaforoLeituraBufferCircularMonitorParaServidor);
 
 	for (DWORD i = 0; i < N_THREADS_SERVIDOR; i++)
 		CloseHandle(threadsServidor.hThreads[i]);

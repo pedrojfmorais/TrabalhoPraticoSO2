@@ -25,7 +25,7 @@ BOOL colocaParede_x_y(DWORD x, DWORD y, DadosJogo* jogo) {
 void setTempoPararAgua(DWORD segundos, DadosJogo* dadosJogo) {
 	dadosJogo->tempoPararAgua = segundos;
 }
-void trataMensagem(PartilhaJogo* partilhaJogo, TCHAR* comando) {
+void trataMensagem(PartilhaJogoServidorMonitor* partilhaJogo, TCHAR* comando) {
 	TCHAR* next_token = NULL;
 	TCHAR* command;
 	command = _tcstok_s(comando, _T(" "), &next_token);

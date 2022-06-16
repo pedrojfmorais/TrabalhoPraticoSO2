@@ -5,7 +5,7 @@ void limpaEcra() { system("cls"); }
 
 BOOL WINAPI recebeMapaJogoDoServidor(LPVOID p) {
 
-	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
+	PartilhaJogoServidorMonitor* partilhaJogo = (PartilhaJogoServidorMonitor*)p;
 
 	while (partilhaJogo->deveContinuar) {
 
@@ -26,7 +26,7 @@ BOOL WINAPI recebeMapaJogoDoServidor(LPVOID p) {
 }
 
 DWORD WINAPI enviaMensagemServidor(LPVOID p) {
-	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
+	PartilhaJogoServidorMonitor* partilhaJogo = (PartilhaJogoServidorMonitor*)p;
 	BufferCell cell;
 
 	while (partilhaJogo->deveContinuar) {

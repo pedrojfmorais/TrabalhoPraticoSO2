@@ -17,7 +17,7 @@ BOOL verificaServidorJaEstaCorrer() {
 	return FALSE;
 }
 
-BOOL initMemAndSync(PartilhaJogo* partilhaJogo) {
+BOOL initMemAndSync(PartilhaJogoServidorMonitor* partilhaJogo) {
 
 	for (DWORD i = 0; i < N_JOGADORES; i++)
 	{

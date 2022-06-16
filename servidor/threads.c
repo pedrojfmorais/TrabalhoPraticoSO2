@@ -3,86 +3,108 @@
 #include "comandosMonitor.h"
 #include "inicializar.h"
 
-BOOL WINAPI criaNamedPipes(LPVOID p) {
-	BOOL fConnected;
-	DWORD dwThreadId;
-	HANDLE hPipe, hThread;
-	hPipe = CreateNamedPipe(
-		pipeName,
-		PIPE_ACCESS_DUPLEX, // acesso read/write (duplex)
-		PIPE_TYPE_MESSAGE | // pipe to tipo message
-		PIPE_READMODE_MESSAGE | // modo message-read
-		PIPE_WAIT, // modo “blocking”
-		PIPE_UNLIMITED_INSTANCES, // max. instâncias
-		BUFSIZE, // tam. buffer output
-		BUFSIZE, // tam. Buffer input
-		NMPWAIT_USE_DEFAULT_WAIT, // time-out para o cliente
-		NULL); // atributos segurança default
-	);
+BOOL WINAPI criaNamedPipeParaClientesTabuleiroJogo(LPVOID p) {
 
-	if (hPipe == INVALID_HANDLE_VALUE) {
-		_tprintf(_T("A criação do pipe falhou"));
-		return FALSE;
-	}
+	PartilhaJogoServidorCliente* partilhaJogo = (PartilhaJogoServidorCliente*)p;
 
-	// Aguarda a ligação de um cliente
-	fConnected = ConnectNamedPipe(hPipe, NULL);
-	if (!fConnected && (GetLastError() == ERROR_PIPE_CONNECTED))
-		fConnected = TRUE;
-	if (fConnected) {
-		AtendeCliente(hPipe);
-	}
-	else{
-		CloseHandle(hPipe);
+	for (int i = 0; i < N_JOGADORES; ++i) {
+
+		HANDLE hPipe;
+		HANDLE hEventTemp;
+
+		hPipe = CreateNamedPipe(
+			PIPE_NAME, 
+			PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
+			PIPE_WAIT | PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE
+			, N_JOGADORES, 
+			sizeof(PartilhaJogoServidorCliente),
+			sizeof(PartilhaJogoServidorCliente),
+			NMPWAIT_USE_DEFAULT_WAIT, 
+			NULL
+		);
+		if (hPipe == INVALID_HANDLE_VALUE) {
+			exit(-1);
+		}
+
+		hEventTemp = CreateEvent(NULL, TRUE, FALSE, NULL);
+		if (hEventTemp == NULL) {
+			exit(-1);
+		}
+
+		ZeroMemory(&partilhaJogo->hPipes[i].overlap, sizeof(&partilhaJogo->hPipes[i].overlap));
+		partilhaJogo->hPipes[i].hInstancia = hPipe;
+		partilhaJogo->hPipes[i].overlap.hEvent = hEventTemp;
+		partilhaJogo->hPipes[i].ativo = FALSE;
+		partilhaJogo->hEvents[i] = hEventTemp;
+
+		if (ConnectNamedPipe(hPipe, &partilhaJogo->hPipes[i].overlap)) {
+			exit(-1);
+		}
 	}
 	
+	DWORD numClientes = 0, offset, nBytes;
+	while (partilhaJogo->deveContinuar && numClientes < N_JOGADORES) {
+		
+		offset = WaitForMultipleObjects(N_JOGADORES, partilhaJogo->hEvents, FALSE, INFINITE);
+		DWORD i = offset - WAIT_OBJECT_0;
+
+		if (i >= 0 && i < N_JOGADORES) {
+			if (GetOverlappedResult(partilhaJogo->hPipes[i].hInstancia, &partilhaJogo->hPipes[i].overlap, &nBytes, FALSE)) {
+				ResetEvent(partilhaJogo->hEvents[i]);
+				WaitForSingleObject(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo, INFINITE);
+				partilhaJogo->hPipes[i].ativo = TRUE;
+				ReleaseMutex(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo);
+			}
+			numClientes++;
+		}
+	}
+
 	return TRUE;
 }
 
-void AtendeCliente(HANDLE hPipe) {
-	TCHAR buf[256];
+DWORD WINAPI clienteConectaNamedPipe(LPVOID p) {
+	PartilhaJogoServidorCliente* dados = (PartilhaJogoServidorCliente*)p;
+	TCHAR buf[TAM];
+	TCHAR read[TAM];
 	DWORD n;
-	BOOL fSuccess;
-	
-	//espera que exista um name pipe para ler do mesmo
-	if (!WaitNamedPipe(pipeName, NMPWAIT_WAIT_FOREVER)) {
-		_tprintf(_T("[ERRO] Ligar ao pipe %s"), pipeName)
-	}
-	
-	//Ligação ao pipe do cliente
+	BOOL ret;
 
-	hPipe = CreateFile(pipeName,
-		GENERIC_READ,
-		0,
-		NULL,
-		OPEN_EXISTING,
-		FILE_ATTRIBUTE_NORMAL,
-		NULL);
-	
-	if (hPipe == NULL) {
-		_tprintf(_T("Erro ao ligar a pipe $s"), pipeName);
-		return FALSE;
-	}
-
-	while (1) {
-		//ler as mensagens
-		fSuccess = ReadFile(hPipe, buf, sizeof(buf), &n, NULL);
-
-		//TERMINA corretamente a string
-		buf[n / sizeof(TCHAR) = '\0';
-		
-		if (!fSuccess || !n) {
-			_tprintf(_T("%d %d"), fSuccess, n);
-			break;
+	do {
+		Sleep(5000);
+		for (int i = 0; i < N_JOGADORES; ++i) {
+			WaitForSingleObject(dados->hReadWriteMutexAtualizacaoNoJogo, INFINITE);
+			if (dados->hPipes[i].ativo) {
+				if (!WriteFile(dados->hPipes[i].hInstancia, dados->jogos[i], sizeof(DadosJogo), &n, NULL)) {
+					exit(-1);
+				}
+				ZeroMemory(read, sizeof(read));
+				ret = ReadFile(dados->hPipes[i].hInstancia, dados->jogos[i], sizeof(DadosJogo), &n, NULL);
+				if (!ret || !n) {
+					break;
+				}
+			}
+			ReleaseMutex(dados->hReadWriteMutexAtualizacaoNoJogo);
 		}
-		_tprintf(_T("Recebi %d bytes: %s"), n, buf);
+	} while (_tcscmp(buf, TEXT("fim")));
+
+	dados->deveContinuar = 1;
+
+	// Desligar todas as instancias de named pipes
+	for (int i = 0; i < N_JOGADORES; i++) {
+		if (!DisconnectNamedPipe(dados->hPipes[i].hInstancia)) {
+			_tprintf(_T("[ERRO] Desligar o pipe!"));
+			return -1;
+		}
 	}
-	CloseHandle(hPipe);
+
+	SetEvent(dados->hEventFecharTudo);
+
+	return 0;
 }
 
 BOOL WINAPI atualizaMapaJogoParaMonitor(LPVOID p) {
 
-	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
+	PartilhaJogoServidorMonitor* partilhaJogo = (PartilhaJogoServidorMonitor*)p;
 
 	while (partilhaJogo->deveContinuar) {
 
@@ -105,7 +127,7 @@ BOOL WINAPI atualizaMapaJogoParaMonitor(LPVOID p) {
 
 
 BOOL WINAPI decorrerJogo(LPVOID p) {
-	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
+	PartilhaJogoServidorMonitor* partilhaJogo = (PartilhaJogoServidorMonitor*)p;
 	BOOL atualizouAposPausarJogo = FALSE;
 
 	while (partilhaJogo->deveContinuar) {
@@ -174,7 +196,7 @@ BOOL WINAPI decorrerJogo(LPVOID p) {
 }
 
 BOOL WINAPI recebeMensagemMonitor(LPVOID p) {
-	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
+	PartilhaJogoServidorMonitor* partilhaJogo = (PartilhaJogoServidorMonitor*)p;
 
 	while (partilhaJogo->deveContinuar) {
 
@@ -201,7 +223,7 @@ BOOL WINAPI recebeMensagemMonitor(LPVOID p) {
 
 
 DWORD WINAPI leMensagemUtilizador(LPVOID p) {
-	PartilhaJogo* partilhaJogo = (PartilhaJogo*)p;
+	PartilhaJogoServidorMonitor* partilhaJogo = (PartilhaJogoServidorMonitor*)p;
 	BufferCell cell;
 
 	TCHAR* command;
@@ -212,14 +234,15 @@ DWORD WINAPI leMensagemUtilizador(LPVOID p) {
 		_tprintf(_T("Insira um comando: "));
 		_getts_s(cell.mensagem, TAM);
 
+		if (_tcslen(cell.mensagem) == 0)
+			continue;
+
 		command = _tcstok_s(cell.mensagem, _T(" "), &next_token);
 
 		WaitForSingleObject(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo, INFINITE);
 
 		if (_tcscmp(command, _T("exit")) == 0) {
-
 			SetEvent(partilhaJogo->hEventFecharTudo);
-
 		}
 		else if (_tcscmp(command, _T("start")) == 0) {
 			for (DWORD i = 0; i < N_JOGADORES; i++)

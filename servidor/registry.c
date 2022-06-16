@@ -1,5 +1,4 @@
 #include "registry.h"
-#include <ctype.h>
 
 BOOL lerDoRegistryDadosMapaJogo(TCHAR nomeChaves[3][TAM], DWORD val[3]) {
 
@@ -10,7 +9,7 @@ BOOL lerDoRegistryDadosMapaJogo(TCHAR nomeChaves[3][TAM], DWORD val[3]) {
 
 	returnCreate = RegCreateKeyEx(
 		HKEY_CURRENT_USER,
-		caminhoRegistry,
+		CAMINHO_REGISTRY,
 		0,
 		NULL,
 		REG_OPTION_VOLATILE,
@@ -37,7 +36,7 @@ BOOL lerDoRegistryDadosMapaJogo(TCHAR nomeChaves[3][TAM], DWORD val[3]) {
 			&sizeVal
 		);
 
-		if (returnQueryValue != ERROR_SUCCESS || !isdigit(val[i])) {
+		if (returnQueryValue != ERROR_SUCCESS) {
 			DWORD error = GetLastError();
 			_tprintf(_T("Erro a ler do Registry [%d]\n"), error);
 			RegCloseKey(chave);
@@ -56,7 +55,7 @@ BOOL guardaNoRegistryDadosMapaJogo(TCHAR nomeChaves[3][TAM], DWORD val[3]) {
 
 	returnCreate = RegCreateKeyEx(
 		HKEY_CURRENT_USER,
-		caminhoRegistry,
+		CAMINHO_REGISTRY,
 		0,
 		NULL,
 		REG_OPTION_VOLATILE,

@@ -8,4 +8,4 @@
 #endif
 
 DLL_IMP_API BOOL verificaServidorJaEstaCorrer();
-DLL_IMP_API BOOL initMemAndSync(PartilhaJogo* partilhaJogo);
+DLL_IMP_API BOOL initMemAndSync(PartilhaJogoServidorMonitor* partilhaJogo);

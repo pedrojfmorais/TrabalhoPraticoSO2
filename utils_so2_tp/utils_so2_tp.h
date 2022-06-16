@@ -21,8 +21,8 @@ DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max);
 //Configurações para o servidor
 #define N_JOGADORES 2
 #define N_SEGUNDOS_AVANCO_AGUA 2
-#define caminhoRegistry _T("software\\so2\\tp\\")
-#define pipeName _T("\\\\.\\pipe\\pipeServidor")
+#define CAMINHO_REGISTRY _T("software\\so2\\tp\\")
+#define PIPE_NAME _T("\\\\.\\pipe\\pipeServidor")
 
 
 //Evento para o fecho de todas as aplicações
@@ -156,7 +156,7 @@ typedef struct {
 
 	HANDLE hTimer;
 
-} PartilhaJogo;
+} PartilhaJogoServidorMonitor;
 
 //Struct para guardar todas as threads do servidor
 #define N_THREADS_SERVIDOR 4
@@ -169,6 +169,28 @@ typedef struct {
 
 } ThreadsServidor;
 
+//Struct para os namedPipe
+typedef struct {
+	HANDLE hInstancia;
+	OVERLAPPED overlap; //estrutura overlapped para uso asincrono
+	BOOL ativo; //para ver se já tem cliente ou não
+} DadosPipe;
+
+typedef struct {
+	DadosPipe hPipes[N_JOGADORES];
+	DadosJogo* jogos[N_JOGADORES];
+	HANDLE hEvents[N_JOGADORES];
+
+	//Evento que define quando fechar todos os programas servidor, monitor
+	HANDLE hEventFecharTudo;
+
+	HANDLE hReadWriteMutexAtualizacaoNoJogo;
+
+	int deveContinuar;
+
+} PartilhaJogoServidorCliente;
+
+
 //Struct para guardar todas as threads do monitor
 #define N_THREADS_MONITOR 2
 typedef struct {
@@ -180,13 +202,6 @@ typedef struct {
 
 } ThreadsMonitor;
 
-//Struct para os namedPipe
-typedef struct {
-	HANDLE hPipe;
-	OVERLAPPED overlap; //estrutura overlapped para uso asincrono
-	BOOL ativo; //para ver se já tem cliente ou não
-} DadosPipe;
-
 typedef struct {
 	DadosPipe hPipes[N_JOGADORES];
 	HANDLE hEvents[N_JOGADORES];
@@ -196,4 +211,4 @@ typedef struct {
 
 //definição de keyword usada para importar funções da DLL
 typedef BOOL(*PFUNC_TypeBool_NoArguments) ();
-typedef BOOL(*PFUNC_TypeBool_PointerPartilhaMapaJogo) (PartilhaJogo*);
+typedef BOOL(*PFUNC_TypeBool_PointerPartilhaMapaJogo) (PartilhaJogoServidorMonitor*);

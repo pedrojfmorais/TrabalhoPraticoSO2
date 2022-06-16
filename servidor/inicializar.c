@@ -54,12 +54,12 @@ void inicializaJogo(DadosJogo* jogo, DefinicoesJogo definicoesJogo) {
 		jogo->proximaPeca = tuboHorizontal; // primeira peça
 }
 
-void inicializaServidor(int argc, TCHAR* argv[], PartilhaJogo* partilhaJogo) {
+void inicializaServidor(int argc, TCHAR* argv[], PartilhaJogoServidorMonitor* partilhaJogoMonitor, PartilhaJogoServidorCliente* partilhaJogoCliente) {
 
 	TCHAR nomeChaves[3][TAM] = { _T("nLinhas"), _T("nColunas"), _T("tempoAguaComecaFluir") };
 	DWORD definicoesJogo[3];
 
-	partilhaJogo->deveContinuar = 1;
+	partilhaJogoMonitor->deveContinuar = 1;
 
 	if (argc == 1) {
 		//Lê no registry
@@ -87,12 +87,17 @@ void inicializaServidor(int argc, TCHAR* argv[], PartilhaJogo* partilhaJogo) {
 		exit(1);
 	}
 
-	partilhaJogo->definicoesJogo.nLinhas = definicoesJogo[0];
-	partilhaJogo->definicoesJogo.nColunas = definicoesJogo[1];
-	partilhaJogo->definicoesJogo.tempoAguaComecaFluir = definicoesJogo[2];
+	partilhaJogoMonitor->definicoesJogo.nLinhas = definicoesJogo[0];
+	partilhaJogoMonitor->definicoesJogo.nColunas = definicoesJogo[1];
+	partilhaJogoMonitor->definicoesJogo.tempoAguaComecaFluir = definicoesJogo[2];
 
 	for (DWORD i = 0; i < N_JOGADORES; i++)
 	{
-		partilhaJogo->jogos[i]->idJogador = i + 1;
+		partilhaJogoMonitor->jogos[i]->idJogador = i + 1;
+
+		partilhaJogoCliente->deveContinuar = partilhaJogoMonitor->deveContinuar;
+		partilhaJogoCliente->hEventFecharTudo = partilhaJogoMonitor->hEventFecharTudo;
+		partilhaJogoCliente->hReadWriteMutexAtualizacaoNoJogo = partilhaJogoMonitor->hReadWriteMutexAtualizacaoNoJogo;
+		partilhaJogoCliente->jogos[i] = partilhaJogoMonitor->jogos[i];
 	}
 }

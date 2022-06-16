@@ -39,7 +39,7 @@ int _tmain(int argc, TCHAR* argv[]) {
 	PFUNC_TypeBool_PointerPartilhaMapaJogo initMemAndSync;
 	initMemAndSync = (PFUNC_TypeBool_PointerPartilhaMapaJogo)GetProcAddress(hLibrary, "initMemAndSync");
 
-	PartilhaJogo partilhaJogo;
+	PartilhaJogoServidorMonitor partilhaJogo;
 
 	if (!initMemAndSync(&partilhaJogo))
 		return 0;
