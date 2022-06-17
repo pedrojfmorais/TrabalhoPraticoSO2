@@ -73,7 +73,7 @@ BOOL WINAPI criaNamedPipeParaClientesMensagens(LPVOID p) {
 
 		hPipe = CreateNamedPipe(
 			PIPE_NAME_MENSAGENS,
-			PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
+			PIPE_ACCESS_OUTBOUND | FILE_FLAG_OVERLAPPED,
 			PIPE_WAIT | PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE
 			, N_JOGADORES,
 			sizeof(MensagensServidorCliente),
@@ -85,40 +85,81 @@ BOOL WINAPI criaNamedPipeParaClientesMensagens(LPVOID p) {
 			exit(-1);
 		}
 
+		hEventTemp = CreateEvent(NULL, TRUE, FALSE, NULL);
+		if (hEventTemp == NULL) {
+			exit(-1);
+		}
+
+		ZeroMemory(&mensagensServidorCliente->hPipes[i].overlap, sizeof(&mensagensServidorCliente->hPipes[i].overlap));
 		mensagensServidorCliente->hPipes[i].hInstancia = hPipe;
 		mensagensServidorCliente->hPipes[i].overlap.hEvent = hEventTemp;
 		mensagensServidorCliente->hPipes[i].ativo = FALSE;
+		mensagensServidorCliente->hEvents[i] = hEventTemp;
 
 		if (ConnectNamedPipe(hPipe, &mensagensServidorCliente->hPipes[i].overlap)) {
 			exit(-1);
 		}
+	}
 
-		DWORD numClientes = 0, offset, nBytes;
-		while (mensagensServidorCliente->deveContinuar && numClientes < N_JOGADORES) {
+	DWORD numClientes = 0, offset, nBytes;
+	while (mensagensServidorCliente->deveContinuar && numClientes < N_JOGADORES) {
 
-			offset = WaitForMultipleObjects(N_JOGADORES, mensagensServidorCliente->hEvents, FALSE, INFINITE);
-			DWORD i = offset - WAIT_OBJECT_0;
+		offset = WaitForMultipleObjects(N_JOGADORES, mensagensServidorCliente->hEvents, FALSE, INFINITE);
+		DWORD i = offset - WAIT_OBJECT_0;
+		if (i >= 0 && i < N_JOGADORES) {
 
-			if (i >= 0 && i < N_JOGADORES) {
-				if (GetOverlappedResult(mensagensServidorCliente->hPipes[i].hInstancia, &mensagensServidorCliente->hPipes[i].overlap, &nBytes, FALSE)) {
-					ResetEvent(mensagensServidorCliente->hEvents[i]);
-					WaitForSingleObject(mensagensServidorCliente->hMutex, INFINITE);
-					mensagensServidorCliente->hPipes[i].ativo = TRUE;
-					ReleaseMutex(mensagensServidorCliente->hMutex);
-				}
-				numClientes++;
+			if (GetOverlappedResult(mensagensServidorCliente->hPipes[i].hInstancia, &mensagensServidorCliente->hPipes[i].overlap, &nBytes, FALSE)) {
+
+				ResetEvent(mensagensServidorCliente->hEvents[i]);
+				WaitForSingleObject(mensagensServidorCliente->hMutex, INFINITE);
+				mensagensServidorCliente->hPipes[i].ativo = TRUE;
+				ReleaseMutex(mensagensServidorCliente->hMutex);
 			}
+			numClientes++;
 		}
 	}
 
 	return TRUE;
 }
 
-DWORD WINAPI clienteConectaNamedPipe(LPVOID p) {
+DWORD WINAPI clienteConectaNamedPipeTabuleiro(LPVOID p) {
+	PartilhaJogoServidorCliente* dados = (PartilhaJogoServidorCliente*)p;
+	TCHAR buf[TAM];
+	TCHAR read[TAM];
+	DWORD n;
+	BOOL ret;
+
+	do {
+		Sleep(5000);
+		for (int i = 0; i < N_JOGADORES; ++i) {
+			WaitForSingleObject(dados->hReadWriteMutexAtualizacaoNoJogo, INFINITE);
+			if (dados->hPipes[i].ativo) {
+				if (!WriteFile(dados->hPipes[i].hInstancia, dados->jogos[i], sizeof(DadosJogo), &n, NULL)) {
+					exit(-1);
+				}
+			}
+			ReleaseMutex(dados->hReadWriteMutexAtualizacaoNoJogo);
+		}
+	} while (_tcscmp(buf, TEXT("fim")));
+
+	dados->deveContinuar = 1;
+
+	// Desligar todas as instancias de named pipes
+	for (int i = 0; i < N_JOGADORES; i++) {
+		if (!DisconnectNamedPipe(dados->hPipes[i].hInstancia)) {
+			_tprintf(_T("[ERRO] Desligar o pipe!"));
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+DWORD WINAPI clienteConectaNamedPipeMensagem(LPVOID p) {
 
 	MensagensServidorCliente* dadosMensagens = (MensagensServidorCliente*)p;
 	
-	TCHAR buf[TAM] = _T("asd");
+	TCHAR buf[TAM] = _T("ASD_123");
 	TCHAR read[TAM];
 	DWORD n;
 	BOOL ret;
@@ -127,9 +168,19 @@ DWORD WINAPI clienteConectaNamedPipe(LPVOID p) {
 		Sleep(5000);
 		for (int i = 0; i < N_JOGADORES; ++i) {
 			WaitForSingleObject(dadosMensagens->hMutex ,INFINITE);
-			CopyMemory(&(dadosMensagens->mensagens[i]->mensagem), &buf, sizeof(TCHAR) * TAM);
+
+			//_tprintf(TEXT("[ESCRITOR] Frase: "));
+			//_getts_s(dadosMensagens->mensagens[i].mensagem, TAM);
+			//dadosMensagens->mensagens[i].mensagem[_tcslen(dadosMensagens->mensagens[i].mensagem) - 1] = '\0';
+			
+
+			CopyMemory(dadosMensagens->mensagens[i].mensagem, buf, _tcslen(buf) * sizeof(TCHAR));
+			//dadosMensagens->mensagens[i].mensagem[_tcslen(dadosMensagens->mensagens[i].mensagem) - 1] = '\0';
+
+			_tprintf(_T("-%s-"), dadosMensagens->mensagens[i].mensagem);
+
 			if (dadosMensagens->hPipes[i].ativo) {
-				if (!WriteFile(dadosMensagens->hPipes[i].hInstancia, dadosMensagens->mensagens[i], sizeof(BufferCell), &n, NULL)) {
+				if (!WriteFile(dadosMensagens->hPipes[i].hInstancia, &dadosMensagens->mensagens[i], sizeof(BufferCell), &n, NULL)) {
 					exit(-1);
 				}
 			}

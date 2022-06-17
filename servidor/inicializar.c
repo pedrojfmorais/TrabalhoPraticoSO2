@@ -96,7 +96,6 @@ void inicializaServidor(int argc, TCHAR* argv[], PartilhaJogoServidorMonitor* pa
 		partilhaJogoMonitor->jogos[i]->idJogador = i + 1;
 
 		partilhaJogoCliente->deveContinuar = partilhaJogoMonitor->deveContinuar;
-		partilhaJogoCliente->hEventFecharTudo = partilhaJogoMonitor->hEventFecharTudo;
 		partilhaJogoCliente->hReadWriteMutexAtualizacaoNoJogo = partilhaJogoMonitor->hReadWriteMutexAtualizacaoNoJogo;
 		partilhaJogoCliente->jogos[i] = partilhaJogoMonitor->jogos[i];
 	}

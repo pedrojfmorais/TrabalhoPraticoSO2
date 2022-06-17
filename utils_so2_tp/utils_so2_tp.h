@@ -197,7 +197,7 @@ typedef struct {
 typedef struct {
 	DadosPipe hPipes[N_JOGADORES];
 	
-	BufferCell* mensagens[N_JOGADORES];
+	BufferCell mensagens[N_JOGADORES];
 
 	HANDLE hEvents[N_JOGADORES];
 

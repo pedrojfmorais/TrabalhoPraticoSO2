@@ -8,5 +8,6 @@ BOOL WINAPI recebeMensagemMonitor(LPVOID p);
 DWORD WINAPI leMensagemUtilizador(LPVOID p);
 DWORD WINAPI acabarThreads(LPVOID p);
 BOOL WINAPI criaNamedPipeParaClientesTabuleiroJogo(LPVOID p);
-DWORD WINAPI clienteConectaNamedPipe(LPVOID p);
+DWORD WINAPI clienteConectaNamedPipeTabuleiro(LPVOID p);
+DWORD WINAPI clienteConectaNamedPipeMensagem(LPVOID p);
 BOOL WINAPI criaNamedPipeParaClientesMensagens(LPVOID p);

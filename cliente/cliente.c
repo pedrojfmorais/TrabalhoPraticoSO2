@@ -344,7 +344,7 @@ int _tmain(int argc, TCHAR* argv[]) {
 	HANDLE hPipeTabuleiro, hPipeMensagens, hThread, hEvent;
 	ThreadsCliente threadsCliente;
 	PartilhaJogoServidorMonitor partilhaJogo;
-	MensagensServidorCliente mensagensServidorCliente;
+	BufferCell mensagensServidorCliente;
 	int i, numClientes = 0;
 	DWORD offset, nBytes;
     TCHAR buf[256];
@@ -359,21 +359,22 @@ int _tmain(int argc, TCHAR* argv[]) {
 	
 	threadsCliente.deveContinuar = &partilhaJogo.deveContinuar;
 	threadsCliente.hMutex = CreateMutex(NULL, FALSE, NULL);
-
+	/*
     if (!WaitNamedPipe(PIPE_NAME_TABULEIRO, NMPWAIT_WAIT_FOREVER)) {
         exit(-1);
     }
-
+	*/
 	if (!WaitNamedPipe(PIPE_NAME_MENSAGENS, NMPWAIT_WAIT_FOREVER)) {
 		exit(-1);
 	}
-
+	/*
+	
 	hPipeTabuleiro = CreateFile(PIPE_NAME_TABULEIRO, GENERIC_READ, 0, NULL, OPEN_EXISTING,
         FILE_ATTRIBUTE_NORMAL, NULL);
     if (hPipeTabuleiro == NULL) {
         exit(-1);
     }
-
+	*/
 	hPipeMensagens = CreateFile(PIPE_NAME_MENSAGENS, GENERIC_READ, 0, NULL, OPEN_EXISTING,
 		FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hPipeMensagens == NULL) {
@@ -382,18 +383,21 @@ int _tmain(int argc, TCHAR* argv[]) {
 
 	DadosJogo recebido, dados;
     while (1) {
-        ret = ReadFile(hPipeTabuleiro, &recebido, sizeof(DadosJogo), &n, NULL);
+		/*
+		ret = ReadFile(hPipeTabuleiro, &recebido, sizeof(DadosJogo), &n, NULL);
         
         if (!ret || !n) {
             break;
         }
+		*/
+		ret = ReadFile(hPipeMensagens, &mensagensServidorCliente, sizeof(BufferCell), &n, NULL);
 
-		ret = ReadFile(hPipeMensagens, mensagensServidorCliente.mensagens, sizeof(TCHAR) * TAM-1, &n, NULL);
-
+		_tprintf(_T("%d %d "), ret, n);
 		if (!ret || !n) {
+			_tprintf(_T("\nERRO"));
 			break;
 		}
-		
+		/*
 		copiarTabuleiroJogoRecebido(recebido, &dados);
 
 		for (int j = 0; j < dados.nLinhas; j++)
@@ -403,9 +407,13 @@ int _tmain(int argc, TCHAR* argv[]) {
 
         if (dados.aJogar)
             desenharMapaJogo(&dados);
-    }
+		
+		*/
 
-    CloseHandle(hPipeTabuleiro);
+		_tprintf(_T("AQUI %s\n\n"), mensagensServidorCliente.mensagem);
+	}
+
+//    CloseHandle(hPipeTabuleiro);
 	CloseHandle(hPipeMensagens);
 
 	return 0;
