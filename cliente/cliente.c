@@ -341,9 +341,10 @@ void copiarTabuleiroJogoRecebido(DadosJogo recebido, DadosJogo* resultadoCopia) 
 
 int _tmain(int argc, TCHAR* argv[]) {
 
-	HANDLE hPipe, hThread, hEvent;
+	HANDLE hPipeTabuleiro, hPipeMensagens, hThread, hEvent;
 	ThreadsCliente threadsCliente;
 	PartilhaJogoServidorMonitor partilhaJogo;
+	MensagensServidorCliente mensagensServidorCliente;
 	int i, numClientes = 0;
 	DWORD offset, nBytes;
     TCHAR buf[256];
@@ -363,19 +364,35 @@ int _tmain(int argc, TCHAR* argv[]) {
         exit(-1);
     }
 
-    hPipe = CreateFile(PIPE_NAME_TABULEIRO, GENERIC_READ, 0, NULL, OPEN_EXISTING,
+	if (!WaitNamedPipe(PIPE_NAME_MENSAGENS, NMPWAIT_WAIT_FOREVER)) {
+		exit(-1);
+	}
+
+	hPipeTabuleiro = CreateFile(PIPE_NAME_TABULEIRO, GENERIC_READ, 0, NULL, OPEN_EXISTING,
         FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hPipe == NULL) {
+    if (hPipeTabuleiro == NULL) {
         exit(-1);
     }
 
+	hPipeMensagens = CreateFile(PIPE_NAME_MENSAGENS, GENERIC_READ, 0, NULL, OPEN_EXISTING,
+		FILE_ATTRIBUTE_NORMAL, NULL);
+	if (hPipeMensagens == NULL) {
+		exit(-1);
+	}
+
 	DadosJogo recebido, dados;
     while (1) {
-        ret = ReadFile(hPipe, &recebido, sizeof(DadosJogo), &n, NULL);
+        ret = ReadFile(hPipeTabuleiro, &recebido, sizeof(DadosJogo), &n, NULL);
         
         if (!ret || !n) {
             break;
         }
+
+		ret = ReadFile(hPipeMensagens, mensagensServidorCliente.mensagens, sizeof(TCHAR) * TAM-1, &n, NULL);
+
+		if (!ret || !n) {
+			break;
+		}
 		
 		copiarTabuleiroJogoRecebido(recebido, &dados);
 
@@ -387,7 +404,9 @@ int _tmain(int argc, TCHAR* argv[]) {
         if (dados.aJogar)
             desenharMapaJogo(&dados);
     }
-    CloseHandle(hPipe);
+
+    CloseHandle(hPipeTabuleiro);
+	CloseHandle(hPipeMensagens);
 
 	return 0;
 

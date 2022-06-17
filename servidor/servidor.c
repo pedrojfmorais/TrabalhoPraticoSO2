@@ -44,6 +44,7 @@ int _tmain(int argc, TCHAR* argv[]) {
 
 	PartilhaJogoServidorMonitor partilhaJogoMonitor;
 	PartilhaJogoServidorCliente partilhaJogoClientes;
+	MensagensServidorCliente mensagensServidorCliente;
 
 	if (!initMemAndSync(&partilhaJogoMonitor))
 		return 1;
@@ -68,7 +69,8 @@ int _tmain(int argc, TCHAR* argv[]) {
 
 	// Testes
 
-	HANDLE hThreadNamedPipe = CreateThread(NULL, 0, criaNamedPipeParaClientesTabuleiroJogo, &partilhaJogoClientes, 0, NULL);
+	HANDLE hThreadNamedPipeTabuleiro = CreateThread(NULL, 0, criaNamedPipeParaClientesTabuleiroJogo, &partilhaJogoClientes, 0, NULL);
+	HANDLE hThreadNamedPipeMensagems = CreateThread(NULL, 0, criaNamedPipeParaClientesMensagens, &mensagensServidorCliente, 0, NULL);
 	HANDLE hThreadNamedPipe_ = CreateThread(NULL, 0, clienteConectaNamedPipe, &partilhaJogoClientes, 0, NULL);
 	
 	/*
