@@ -22,7 +22,8 @@ DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max);
 #define N_JOGADORES 2
 #define N_SEGUNDOS_AVANCO_AGUA 2
 #define CAMINHO_REGISTRY _T("software\\so2\\tp\\")
-#define PIPE_NAME _T("\\\\.\\pipe\\pipeServidor")
+#define PIPE_NAME_TABULEIRO _T("\\\\.\\pipe\\pipeTabuleiro")
+#define PIPE_NAME_MENSAGENS _T("\\\\.\\pipe\\pipeMensagens")
 
 
 //Evento para o fecho de todas as aplicações
@@ -181,18 +182,29 @@ typedef struct {
 
 typedef struct {
 	DadosPipe hPipes[N_JOGADORES];
+	
 	DadosJogo* jogos[N_JOGADORES];
 
 	HANDLE hEvents[N_JOGADORES];
-
-	//Evento que define quando fechar todos os programas servidor, monitor
-	HANDLE hEventFecharTudo;
 
 	HANDLE hReadWriteMutexAtualizacaoNoJogo;
 
 	int deveContinuar;
 
 } PartilhaJogoServidorCliente;
+
+
+typedef struct {
+	DadosPipe hPipes[N_JOGADORES];
+	
+	BufferCell* mensagens[N_JOGADORES];
+
+	HANDLE hEvents[N_JOGADORES];
+
+	HANDLE hMutex;
+
+	int deveContinuar;
+} MensagensServidorCliente;
 
 //Struct para guardar todas as threads do monitor
 #define N_THREADS_MONITOR 2

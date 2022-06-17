@@ -359,11 +359,11 @@ int _tmain(int argc, TCHAR* argv[]) {
 	threadsCliente.deveContinuar = &partilhaJogo.deveContinuar;
 	threadsCliente.hMutex = CreateMutex(NULL, FALSE, NULL);
 
-    if (!WaitNamedPipe(PIPE_NAME, NMPWAIT_WAIT_FOREVER)) {
+    if (!WaitNamedPipe(PIPE_NAME_TABULEIRO, NMPWAIT_WAIT_FOREVER)) {
         exit(-1);
     }
 
-    hPipe = CreateFile(PIPE_NAME, GENERIC_READ, 0, NULL, OPEN_EXISTING,
+    hPipe = CreateFile(PIPE_NAME_TABULEIRO, GENERIC_READ, 0, NULL, OPEN_EXISTING,
         FILE_ATTRIBUTE_NORMAL, NULL);
     if (hPipe == NULL) {
         exit(-1);

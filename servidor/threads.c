@@ -13,7 +13,7 @@ BOOL WINAPI criaNamedPipeParaClientesTabuleiroJogo(LPVOID p) {
 		HANDLE hEventTemp;
 
 		hPipe = CreateNamedPipe(
-			PIPE_NAME, 
+			PIPE_NAME_TABULEIRO, 
 			PIPE_ACCESS_OUTBOUND | FILE_FLAG_OVERLAPPED,
 			PIPE_WAIT | PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE
 			, N_JOGADORES, 
@@ -62,9 +62,63 @@ BOOL WINAPI criaNamedPipeParaClientesTabuleiroJogo(LPVOID p) {
 	return TRUE;
 }
 
+BOOL WINAPI criaNamedPipeParaClientesMensagens(LPVOID p) {
+
+	MensagensServidorCliente* mensagensServidorCliente = (MensagensServidorCliente*)p;
+
+	for (int i = 0; i < N_JOGADORES; ++i) {
+
+		HANDLE hPipe;
+		HANDLE hEventTemp;
+
+		hPipe = CreateNamedPipe(
+			PIPE_NAME_MENSAGENS,
+			PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
+			PIPE_WAIT | PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE
+			, N_JOGADORES,
+			sizeof(MensagensServidorCliente),
+			sizeof(MensagensServidorCliente),
+			NMPWAIT_USE_DEFAULT_WAIT,
+			NULL
+		);
+		if (hPipe == INVALID_HANDLE_VALUE) {
+			exit(-1);
+		}
+
+		mensagensServidorCliente->hPipes[i].hInstancia = hPipe;
+		mensagensServidorCliente->hPipes[i].overlap.hEvent = hEventTemp;
+		mensagensServidorCliente->hPipes[i].ativo = FALSE;
+
+		if (ConnectNamedPipe(hPipe, &mensagensServidorCliente->hPipes[i].overlap)) {
+			exit(-1);
+		}
+
+		DWORD numClientes = 0, offset, nBytes;
+		while (mensagensServidorCliente->deveContinuar && numClientes < N_JOGADORES) {
+
+			offset = WaitForMultipleObjects(N_JOGADORES, mensagensServidorCliente->hEvents, FALSE, INFINITE);
+			DWORD i = offset - WAIT_OBJECT_0;
+
+			if (i >= 0 && i < N_JOGADORES) {
+				if (GetOverlappedResult(mensagensServidorCliente->hPipes[i].hInstancia, &mensagensServidorCliente->hPipes[i].overlap, &nBytes, FALSE)) {
+					ResetEvent(mensagensServidorCliente->hEvents[i]);
+					WaitForSingleObject(mensagensServidorCliente->hMutex, INFINITE);
+					mensagensServidorCliente->hPipes[i].ativo = TRUE;
+					ReleaseMutex(mensagensServidorCliente->hMutex);
+				}
+				numClientes++;
+			}
+		}
+	}
+
+	return TRUE;
+}
+
 DWORD WINAPI clienteConectaNamedPipe(LPVOID p) {
-	PartilhaJogoServidorCliente* dados = (PartilhaJogoServidorCliente*)p;
-	TCHAR buf[TAM];
+
+	MensagensServidorCliente* dadosMensagens = (MensagensServidorCliente*)p;
+	
+	TCHAR buf[TAM] = _T("asd");
 	TCHAR read[TAM];
 	DWORD n;
 	BOOL ret;
@@ -72,27 +126,26 @@ DWORD WINAPI clienteConectaNamedPipe(LPVOID p) {
 	do {
 		Sleep(5000);
 		for (int i = 0; i < N_JOGADORES; ++i) {
-			WaitForSingleObject(dados->hReadWriteMutexAtualizacaoNoJogo, INFINITE);
-			if (dados->hPipes[i].ativo) {
-				if (!WriteFile(dados->hPipes[i].hInstancia, dados->jogos[i], sizeof(DadosJogo), &n, NULL)) {
+			WaitForSingleObject(dadosMensagens->hMutex ,INFINITE);
+			CopyMemory(&(dadosMensagens->mensagens[i]->mensagem), &buf, sizeof(TCHAR) * TAM);
+			if (dadosMensagens->hPipes[i].ativo) {
+				if (!WriteFile(dadosMensagens->hPipes[i].hInstancia, dadosMensagens->mensagens[i], sizeof(BufferCell), &n, NULL)) {
 					exit(-1);
 				}
 			}
-			ReleaseMutex(dados->hReadWriteMutexAtualizacaoNoJogo);
+			ReleaseMutex(dadosMensagens->hMutex);
 		}
 	} while (_tcscmp(buf, TEXT("fim")));
 
-	dados->deveContinuar = 1;
+	dadosMensagens->deveContinuar = 1;
 
 	// Desligar todas as instancias de named pipes
 	for (int i = 0; i < N_JOGADORES; i++) {
-		if (!DisconnectNamedPipe(dados->hPipes[i].hInstancia)) {
+		if (!DisconnectNamedPipe(dadosMensagens->hPipes[i].hInstancia)) {
 			_tprintf(_T("[ERRO] Desligar o pipe!"));
 			return -1;
 		}
 	}
-
-	SetEvent(dados->hEventFecharTudo);
 
 	return 0;
 }
