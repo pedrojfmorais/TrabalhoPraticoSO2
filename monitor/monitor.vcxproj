@@ -27,6 +27,9 @@
     <ClInclude Include="mostraMapaJogo.h" />
     <ClInclude Include="threads.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\cliente_cmd\cliente.vcxproj" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>

@@ -33,4 +33,7 @@
       <Filter>Arquivos de Cabeçalho</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\cliente_cmd\cliente.vcxproj" />
+  </ItemGroup>
 </Project>

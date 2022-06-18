@@ -58,7 +58,7 @@ int _tmain(int argc, TCHAR* argv[]) {
 	threadsServidor.hThreads[0] = CreateThread(NULL, 0, atualizaMapaJogoParaMonitor, &partilhaJogoMonitor, 0, NULL);
 	threadsServidor.hThreads[1] = CreateThread(NULL, 0, decorrerJogo, &partilhaJogoMonitor, 0, NULL);
 	threadsServidor.hThreads[2] = CreateThread(NULL, 0, recebeMensagemMonitor, &partilhaJogoMonitor, 0, NULL);
-	//threadsServidor.hThreads[3] = CreateThread(NULL, 0, leMensagemUtilizador, &partilhaJogoMonitor, 0, NULL);
+	threadsServidor.hThreads[3] = CreateThread(NULL, 0, leMensagemUtilizador, &partilhaJogoMonitor, 0, NULL);
 	HANDLE hThreadParaThreads = CreateThread(NULL, 0, acabarThreads, &threadsServidor, 0, NULL);
 
 	if (threadsServidor.hThreads[0] == NULL || threadsServidor.hThreads[1] == NULL || threadsServidor.hThreads[2] == NULL || 
@@ -69,8 +69,11 @@ int _tmain(int argc, TCHAR* argv[]) {
 
 	// Testes
 
+
+
+
 	HANDLE hThreadNamedPipeTabuleiro = CreateThread(NULL, 0, criaNamedPipeParaClientesTabuleiroJogo, &partilhaJogoClientes, 0, NULL);
-	HANDLE hThreadNamedPipeMensagems = CreateThread(NULL, 0, criaNamedPipeParaClientesMensagens, &mensagensServidorCliente, 0, NULL);
+	//HANDLE hThreadNamedPipeMensagems = CreateThread(NULL, 0, criaNamedPipeParaClientesMensagens, &mensagensServidorCliente, 0, NULL);
 	HANDLE hThreadNamedPipe_ = CreateThread(NULL, 0, clienteConectaNamedPipeTabuleiro, &partilhaJogoClientes, 0, NULL);
 	HANDLE hThreadNamedPipeMensagems_ = CreateThread(NULL, 0, clienteConectaNamedPipeMensagem, &mensagensServidorCliente, 0, NULL);
 

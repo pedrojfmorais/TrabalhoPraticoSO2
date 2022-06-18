@@ -17,8 +17,8 @@ BOOL WINAPI criaNamedPipeParaClientesTabuleiroJogo(LPVOID p) {
 			PIPE_ACCESS_OUTBOUND | FILE_FLAG_OVERLAPPED,
 			PIPE_WAIT | PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE
 			, N_JOGADORES, 
-			sizeof(PartilhaJogoServidorCliente),
-			sizeof(PartilhaJogoServidorCliente),
+			sizeof(DadosJogo),
+			sizeof(DadosJogo),
 			NMPWAIT_USE_DEFAULT_WAIT, 
 			NULL
 		);
@@ -73,11 +73,11 @@ BOOL WINAPI criaNamedPipeParaClientesMensagens(LPVOID p) {
 
 		hPipe = CreateNamedPipe(
 			PIPE_NAME_MENSAGENS,
-			PIPE_ACCESS_OUTBOUND | FILE_FLAG_OVERLAPPED,
-			PIPE_WAIT | PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE
-			, N_JOGADORES,
-			sizeof(MensagensServidorCliente),
-			sizeof(MensagensServidorCliente),
+			PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
+			PIPE_WAIT | PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE, 
+			N_JOGADORES,
+			sizeof(BufferCell),
+			sizeof(BufferCell),
 			NMPWAIT_USE_DEFAULT_WAIT,
 			NULL
 		);
@@ -100,7 +100,7 @@ BOOL WINAPI criaNamedPipeParaClientesMensagens(LPVOID p) {
 			exit(-1);
 		}
 	}
-
+	/*
 	DWORD numClientes = 0, offset, nBytes;
 	while (mensagensServidorCliente->deveContinuar && numClientes < N_JOGADORES) {
 
@@ -118,6 +118,7 @@ BOOL WINAPI criaNamedPipeParaClientesMensagens(LPVOID p) {
 			numClientes++;
 		}
 	}
+	*/
 
 	return TRUE;
 }
@@ -159,35 +160,99 @@ DWORD WINAPI clienteConectaNamedPipeMensagem(LPVOID p) {
 
 	MensagensServidorCliente* dadosMensagens = (MensagensServidorCliente*)p;
 	
-	TCHAR buf[TAM] = _T("ASD_123");
 	TCHAR read[TAM];
 	DWORD n;
 	BOOL ret;
+	
+	for (int i = 0; i < N_JOGADORES; ++i) {
 
-	do {
-		Sleep(5000);
-		for (int i = 0; i < N_JOGADORES; ++i) {
-			WaitForSingleObject(dadosMensagens->hMutex ,INFINITE);
+		HANDLE hPipe;
+		HANDLE hEventTemp;
 
-			//_tprintf(TEXT("[ESCRITOR] Frase: "));
-			//_getts_s(dadosMensagens->mensagens[i].mensagem, TAM);
-			//dadosMensagens->mensagens[i].mensagem[_tcslen(dadosMensagens->mensagens[i].mensagem) - 1] = '\0';
-			
-
-			CopyMemory(dadosMensagens->mensagens[i].mensagem, buf, _tcslen(buf) * sizeof(TCHAR));
-			//dadosMensagens->mensagens[i].mensagem[_tcslen(dadosMensagens->mensagens[i].mensagem) - 1] = '\0';
-
-			_tprintf(_T("-%s-"), dadosMensagens->mensagens[i].mensagem);
-
-			if (dadosMensagens->hPipes[i].ativo) {
-				if (!WriteFile(dadosMensagens->hPipes[i].hInstancia, &dadosMensagens->mensagens[i], sizeof(BufferCell), &n, NULL)) {
-					exit(-1);
-				}
-			}
-			ReleaseMutex(dadosMensagens->hMutex);
+		hPipe = CreateNamedPipe(
+			PIPE_NAME_MENSAGENS,
+			PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
+			PIPE_WAIT | PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE, 
+			N_JOGADORES,
+			sizeof(BufferCell),
+			sizeof(BufferCell),
+			NMPWAIT_USE_DEFAULT_WAIT,
+			NULL
+		);
+		if (hPipe == INVALID_HANDLE_VALUE) {
+			exit(-1);
 		}
-	} while (_tcscmp(buf, TEXT("fim")));
 
+		hEventTemp = CreateEvent(NULL, TRUE, FALSE, NULL);
+		if (hEventTemp == NULL) {
+			exit(-1);
+		}
+
+		ZeroMemory(&dadosMensagens->hPipes[i].overlap, sizeof(&dadosMensagens->hPipes[i].overlap));
+		dadosMensagens->hPipes[i].hInstancia = hPipe;
+		dadosMensagens->hPipes[i].overlap.hEvent = hEventTemp;
+		dadosMensagens->hPipes[i].ativo = FALSE;
+		dadosMensagens->hEvents[i] = hEventTemp;
+
+		if (ConnectNamedPipe(hPipe, &dadosMensagens->hPipes[i].overlap)) {
+			exit(-1);
+		}
+	}
+	
+	do {
+		_tprintf(_T("111111111111111111"));
+		
+		DWORD dwWait = WaitForMultipleObjects(
+			N_JOGADORES,
+			dadosMensagens->hEvents,
+			FALSE,
+			INFINITE
+		);
+		
+		_tprintf(_T("22222222222222\n"));
+		
+		if (dwWait == WAIT_FAILED)
+			_tprintf(TEXT("Error %d.\n"), GetLastError());
+		if (dwWait != WAIT_TIMEOUT) {
+			int i = dwWait - WAIT_OBJECT_0;
+			if (i < 0 || i >(N_JOGADORES - 1))
+			{
+				_tprintf(TEXT("Index out of range.\n"));
+				return 0;
+			}
+
+			ret = GetOverlappedResult(
+				dadosMensagens->hPipes[i].hInstancia,
+				&dadosMensagens->hPipes[i].overlap,
+				&n,
+				FALSE);
+			//109 Erro que dá porque o cliente se desligou do outro lado
+			if (!ret && GetLastError() == 109) {
+				continue;
+			}
+				
+			else if (!ret) {
+				_tprintf(TEXT("Error %d.\n"), GetLastError());
+				return 0;
+			}
+			else if(dadosMensagens->hPipes[i].ativo) {
+				int ret = ReadFile(dadosMensagens->hPipes[i].hInstancia, 
+					&dadosMensagens->mensagens[i], 
+					sizeof(BufferCell),
+					&n,
+					&dadosMensagens->hPipes[i].overlap);
+				
+				_tprintf(_T("%d %s"), ret, dadosMensagens->mensagens[i].mensagem);
+				//WriteFile(dadosMensagens->hPipes[i].hInstancia, &dadosMensagens->mensagens[i], sizeof(BufferCell), &n, &(dadosMensagens->hPipes[i].overlap));
+				ResetEvent(dadosMensagens->hEvents[i]);
+			}
+			else {
+				dadosMensagens->hPipes[i].ativo = TRUE;
+				ResetEvent(dadosMensagens->hEvents[i]);
+			}
+		}
+	}while (1);
+	
 	dadosMensagens->deveContinuar = 1;
 
 	// Desligar todas as instancias de named pipes
