@@ -69,8 +69,7 @@ int _tmain(int argc, TCHAR* argv[]) {
 
 	// Testes
 
-
-
+	partilhaJogoClientes.hEventAtualizacaoNoJogo = partilhaJogoMonitor.hEventAtualizacaoNoJogo;
 
 	HANDLE hThreadNamedPipeTabuleiro = CreateThread(NULL, 0, criaNamedPipeParaClientesTabuleiroJogo, &partilhaJogoClientes, 0, NULL);
 	//HANDLE hThreadNamedPipeMensagems = CreateThread(NULL, 0, criaNamedPipeParaClientesMensagens, &mensagensServidorCliente, 0, NULL);

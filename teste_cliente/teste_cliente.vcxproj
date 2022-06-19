@@ -18,28 +18,11 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="comandosCliente.c" />
-    <ClCompile Include="comandosMonitor.c" />
-    <ClCompile Include="inicializar.c" />
-    <ClCompile Include="pathfindAgua.c" />
-    <ClCompile Include="registry.c" />
-    <ClCompile Include="servidor.c" />
-    <ClCompile Include="threads.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="comandosCliente.h" />
-    <ClInclude Include="comandosMonitor.h" />
-    <ClInclude Include="inicializar.h" />
-    <ClInclude Include="pathfindAgua.h" />
-    <ClInclude Include="registry.h" />
-    <ClInclude Include="threads.h" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{c69f220b-7450-4176-a05c-2da616eb7cad}</ProjectGuid>
-    <RootNamespace>servidor</RootNamespace>
+    <ProjectGuid>{95a069c6-ed86-49ef-bba6-fa2423d473a3}</ProjectGuid>
+    <RootNamespace>testecliente</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -87,18 +70,6 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LinkIncremental>true</LinkIncremental>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LinkIncremental>false</LinkIncremental>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LinkIncremental>true</LinkIncremental>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LinkIncremental>false</LinkIncremental>
-  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -155,6 +126,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="cliente_teste.c" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

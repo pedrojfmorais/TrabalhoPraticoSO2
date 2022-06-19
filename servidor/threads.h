@@ -1,6 +1,7 @@
 #pragma once
 
 #include"..\utils_so2_tp\utils_so2_tp.h"
+#include "comandosCliente.h"
 
 BOOL WINAPI atualizaMapaJogoParaMonitor(LPVOID p);
 BOOL WINAPI decorrerJogo(LPVOID p);

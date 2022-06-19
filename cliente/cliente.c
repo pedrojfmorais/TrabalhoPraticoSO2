@@ -3,9 +3,12 @@
 
 #include "framework.h"
 #include "cliente.h"
+#include <windowsx.h>
 #include "..\\utils_so2_tp\utils_so2_tp.h"
 
 #define MAX_LOADSTRING 100
+
+// TESTES
 
 void copiarTabuleiroJogoRecebido(DadosJogo recebido, DadosJogo* resultadoCopia) {
     resultadoCopia->aJogar = recebido.aJogar;
@@ -29,15 +32,84 @@ void copiarTabuleiroJogoRecebido(DadosJogo recebido, DadosJogo* resultadoCopia) 
     resultadoCopia->tempoPararAgua = recebido.tempoPararAgua;
 }
 
+HBITMAP getPeca(int num) {
+
+    TCHAR pasta[TAM];
+
+    switch (num)
+    {
+    case tuboVazio:
+        return (HBITMAP)LoadImage(NULL, TEXT("images/vazio.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP, LR_LOADFROMFILE);
+
+    case tuboBloqueado:
+        return (HBITMAP)LoadImage(NULL, TEXT("images/parede.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP, LR_LOADFROMFILE);
+
+    case tuboOrigemAgua:
+        return (HBITMAP)LoadImage(NULL, TEXT("images/comecoAgua.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP, LR_LOADFROMFILE);
+
+    case tuboOrigemAgua * 10:
+        return (HBITMAP)LoadImage(NULL, TEXT("images/comecoAgua_comAgua.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP, LR_LOADFROMFILE);
+
+    case tuboDestinoAgua:
+        return (HBITMAP)LoadImage(NULL, TEXT("images/fimAgua.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP, LR_LOADFROMFILE);
+
+    case tuboDestinoAgua * 10:
+        return (HBITMAP)LoadImage(NULL, TEXT("images/fimAgua_comAgua.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP, LR_LOADFROMFILE);
+
+    case tuboHorizontal:
+        return (HBITMAP)LoadImage(NULL, TEXT("images/tuboHorizontal.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP, LR_LOADFROMFILE);
+
+    case tuboHorizontal * 10:
+        return (HBITMAP)LoadImage(NULL, TEXT("images/tuboHorizontal_comAgua.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP, LR_LOADFROMFILE);
+
+    case tuboVertical:
+        return (HBITMAP)LoadImage(NULL, TEXT("images/tuboVertical.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP, LR_LOADFROMFILE);
+
+    case tuboVertical * 10:
+        return (HBITMAP)LoadImage(NULL, TEXT("images/tuboVertical_comAgua.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP, LR_LOADFROMFILE);
+
+    case tuboCurvaEsquerdaCima:
+        return (HBITMAP)LoadImage(NULL, TEXT("images/esquerdaCima.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP, LR_LOADFROMFILE);
+
+    case tuboCurvaEsquerdaCima * 10:
+        return (HBITMAP)LoadImage(NULL, TEXT("images/esquerdaCima_comAgua.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP, LR_LOADFROMFILE);
+
+    case tuboCurvaEsquerdaBaixo:
+        return (HBITMAP)LoadImage(NULL, TEXT("images/esquerdaBaixo.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP, LR_LOADFROMFILE);
+
+    case tuboCurvaEsquerdaBaixo * 10:
+        return (HBITMAP)LoadImage(NULL, TEXT("images/esquerdaBaixo_comAgua.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP, LR_LOADFROMFILE);
+
+    case tuboCurvaDireitaCima:
+        return (HBITMAP)LoadImage(NULL, TEXT("images/direitaCima.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP, LR_LOADFROMFILE);
+
+    case tuboCurvaDireitaCima * 10:
+        return (HBITMAP)LoadImage(NULL, TEXT("images/direitaCima_comAgua.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP, LR_LOADFROMFILE);
+
+    case tuboCurvaDireitaBaixo:
+        return (HBITMAP)LoadImage(NULL, TEXT("images/direitaBaixo.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP, LR_LOADFROMFILE);
+
+    case tuboCurvaDireitaBaixo * 10:
+        return (HBITMAP)LoadImage(NULL, TEXT("images/direitaBaixo_comAgua.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP, LR_LOADFROMFILE);
+
+    default:
+        return (HBITMAP)LoadImage(NULL, TEXT("images/vazio.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP, LR_LOADFROMFILE);
+    }
+}
+
 DWORD WINAPI recebeTabuleiroServidor(LPVOID p) {
 
-    DadosJogo* dados = (DadosJogo*)p;
-
+    DadosThreadDesenharTabuleiro* dados = (DadosThreadDesenharTabuleiro*)p;
+    
     DadosJogo recebido;
 
     HANDLE hPipeTabuleiro;
     BOOL ret;
     DWORD n;
+
+    RECT rect;
+    HDC hdc;
+    PAINTSTRUCT ps;
 
     if (!WaitNamedPipe(PIPE_NAME_TABULEIRO, NMPWAIT_WAIT_FOREVER)) {
         exit(-1);
@@ -50,25 +122,136 @@ DWORD WINAPI recebeTabuleiroServidor(LPVOID p) {
     }
 
     while (1) {
+        Sleep(1000);
+        
         ret = ReadFile(hPipeTabuleiro, &recebido, sizeof(DadosJogo), &n, NULL);
-
+        
         if (!ret || !n) {
             break;
         }
 
-        copiarTabuleiroJogoRecebido(recebido, dados);
+        copiarTabuleiroJogoRecebido(recebido, &dados->dadosJogo);
+        		
+        for (int j = 0; j < dados->dadosJogo.nLinhas; j++)
+            for (int k = 0; k < dados->dadosJogo.nColunas; k++)
+                dados->dadosJogo.mapaJogo[j][k] = recebido.mapaJogo[j][k];
+        
+        WaitForSingleObject(dados->hMutex, INFINITE);
 
-        for (int j = 0; j < dados->nLinhas; j++)
-            for (int k = 0; k < dados->nColunas; k++)
-                dados->mapaJogo[j][k] = recebido.mapaJogo[j][k];
+        if (*dados->memDC != NULL) {
+            FillRect(*dados->memDC, &rect, CreateSolidBrush(RGB(220, 220, 220)));
+            for (int j = 0; j < dados->dadosJogo.nLinhas; j++) {
+                for (int k = 0; k < dados->dadosJogo.nColunas; k++) {
 
-        if (dados->aJogar)
-            desenharMapaJogo(dados);
-    }
+                    SelectObject(dados->bmpDC, getPeca(dados->dadosJogo.mapaJogo[j][k]));
+
+                    GetClientRect(dados->hWnd, &rect);
+                    *dados->xBitmap = rect.left + (k * TAM_BITMAP);
+                    *dados->yBitmap = rect.top + (j * TAM_BITMAP);
+                    BitBlt(*dados->memDC, *dados->xBitmap, *dados->yBitmap,
+                        dados->bmp.bmWidth, dados->bmp.bmHeight, dados->bmpDC, 0, 0, SRCCOPY);
+                }
+            }
+
+            *dados->xBitmap = rect.left;
+            *dados->yBitmap = rect.top + ((dados->dadosJogo.nLinhas + 1) * TAM_BITMAP);
+
+            SelectObject(dados->bmpDC, getPeca(dados->dadosJogo.proximaPeca));
+            GetClientRect(dados->hWnd, &rect);
+            BitBlt(*dados->memDC, *dados->xBitmap, *dados->yBitmap,
+                dados->bmp.bmWidth, dados->bmp.bmHeight, dados->bmpDC, 0, 0, SRCCOPY);
+
+        }
+        
+        ReleaseMutex(dados->hMutex);
+
+        InvalidateRect(dados->hWnd, NULL, TRUE);
+        Sleep(30);
+    }        
 
     CloseHandle(hPipeTabuleiro);
     return 0;
 }
+
+void colocaPeca(DWORD x, DWORD y, DadosThreadDesenharTabuleiro* dados) {
+
+    //Verificações realizadas no servidor
+
+    x /= TAM_BITMAP;
+    y /= TAM_BITMAP;
+
+    if (y > dados->dadosJogo.nLinhas-1 || x > dados->dadosJogo.nColunas-1)
+        return;
+
+    //Teste - Mostrar coordenadas no tabuleiro
+
+    HDC dc = GetDC(dados->hWnd);
+    RECT rc;
+    GetClientRect(dados->hWnd, &rc);
+    TCHAR coords[TAM];
+    swprintf_s(coords, TAM, _T("x:%d,y:%d"), x, y);
+    DrawText(dc, coords, -1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    ReleaseDC(dados->hWnd, dc);
+    //Fim Teste
+
+    //TODO: envia meter peca nas coordenadas x,y para o servidor pelo named pipe
+        
+}
+
+void removePeca(DWORD x, DWORD y, DadosThreadDesenharTabuleiro* dados) {
+    
+    //Verificações realizadas no servidor
+
+    x /= TAM_BITMAP;
+    y /= TAM_BITMAP;
+
+    if (y > dados->dadosJogo.nLinhas - 1 || x > dados->dadosJogo.nColunas - 1)
+        return;
+
+    //Teste - Mostrar coordenadas no tabuleiro
+
+    HDC dc = GetDC(dados->hWnd);
+    RECT rc;
+    GetClientRect(dados->hWnd, &rc);
+    TCHAR coords[TAM];
+    swprintf_s(coords, TAM, _T("x:%d,y:%d"), x, y);
+    DrawText(dc, coords, -1, &rc, DT_CENTER | DT_VCENTER | DT_PATH_ELLIPSIS);
+    ReleaseDC(dados->hWnd, dc);
+    //Fim Teste
+
+    //TODO: envia tirar peca nas coordenadas x,y para o servidor pelo named pipe
+
+}
+
+void pararAgua(DWORD x, DWORD y, DadosThreadDesenharTabuleiro* dados) {
+
+    //Verificações realizadas no servidor
+ 
+    x /= TAM_BITMAP;
+    y /= TAM_BITMAP;
+
+    if (y > dados->dadosJogo.nLinhas - 1 || x > dados->dadosJogo.nColunas - 1)
+        return;
+
+    //se o rato não estiver na coordenada atual da água não a para
+    if (dados->dadosJogo.coordenadaAtualAgua[0] != y || dados->dadosJogo.coordenadaAtualAgua[1] != x)
+        return;
+
+    //Teste - Mostrar coordenadas no tabuleiro
+    
+    HDC dc = GetDC(dados->hWnd);
+    RECT rc;
+    GetClientRect(dados->hWnd, &rc);
+    TCHAR coords[TAM];
+    swprintf_s(coords, sizeof(TCHAR) * _tcslen(_T("ASDASD")), _T("ASDASD"), x, y);
+    DrawText(dc, coords, -1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    ReleaseDC(dados->hWnd, dc);
+    //Fim Teste
+
+    //TODO: envia tirar peca nas coordenadas x,y para o servidor pelo named pipe
+
+}
+
 
 // Variáveis Globais:
 HINSTANCE hInst;                                // instância atual
@@ -192,15 +375,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     PAINTSTRUCT ps;
     MINMAXINFO* mmi;
     static int xpto = 0;
-    static HDC bmpDC = NULL;
-    HBITMAP hBmp = NULL;
+
+    static HDC bmpDC;
+    HBITMAP hBmp;
     static BITMAP bmp;
     static int xBitmap;
     static int yBitmap;
+    static HANDLE hMutex;
+
+    static HDC memDC = NULL;
+
+    static DadosThreadDesenharTabuleiro desenhoTabuleiro;
+    static TRACKMOUSEEVENT tme;
+
     switch (message)
     {
+    
     case WM_CREATE:
-        hBmp = (HBITMAP)LoadImage(NULL, TEXT("images/comecoAgua_comAgua.bmp"), IMAGE_BITMAP, 75, 75,
+        
+        tme.cbSize = sizeof(TRACKMOUSEEVENT);
+        tme.dwFlags = TME_HOVER;
+        tme.hwndTrack = hWnd;
+        tme.dwHoverTime = 2000;
+
+        hBmp = (HBITMAP)LoadImage(NULL, _T("images/comecoAgua_comAgua.bmp"), IMAGE_BITMAP, TAM_BITMAP, TAM_BITMAP,
             LR_LOADFROMFILE);
         //BITMAP
         GetObject(hBmp, sizeof(bmp), &bmp);
@@ -213,20 +411,58 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         //apanhar o meio 
         xBitmap = (rect.right / 2) - (bmp.bmWidth / 2);
         yBitmap = (rect.bottom / 2) - (bmp.bmHeight / 2);
+
+
+        hMutex = CreateMutex(NULL, FALSE, NULL);
+        desenhoTabuleiro.hMutex = hMutex;
+        desenhoTabuleiro.hWnd = hWnd;
+        desenhoTabuleiro.xBitmap = &xBitmap;
+        desenhoTabuleiro.yBitmap = &yBitmap;
+        desenhoTabuleiro.bmp = bmp;
+        desenhoTabuleiro.bmpDC = bmpDC;
+        desenhoTabuleiro.memDC = &memDC;
+
+        CreateThread(NULL, 0, recebeTabuleiroServidor, &desenhoTabuleiro, 0, NULL);
+
         break;
 
     case WM_PAINT:
         hdc = BeginPaint(hWnd, &ps);
+
         GetClientRect(hWnd, &rect);
-        //A função FillRect preenche um retângulo usando o pincel especificado.
-        FillRect(hdc, &rect, CreateSolidBrush(RGB(128, 128, 128)));
-        BitBlt(hdc, xBitmap, yBitmap, bmp.bmWidth, bmp.bmHeight, bmpDC, 0, 0, SRCCOPY);
-        //A função EndPaint marca o fim da pintura na janela especificada.Essa função é necessária para cada chamada à função BeginPaint
+
+        if (memDC == NULL) //primeira vez
+        {
+            memDC = CreateCompatibleDC(hdc);
+            hBmp = CreateCompatibleBitmap(hdc, rect.right, rect.bottom);
+            SelectObject(memDC, hBmp);
+            DeleteObject(hBmp);
+            FillRect(memDC, &rect, CreateSolidBrush(RGB(220, 220, 220)));
+            BitBlt(memDC, xBitmap, yBitmap, bmp.bmWidth, bmp.bmHeight, bmpDC, 0, 0, SRCCOPY);
+        }
+
+        BitBlt(hdc, 0, 0, rect.right, rect.bottom, memDC, 0, 0, SRCCOPY);
+
         EndPaint(hWnd, &ps);
         break;
 
     case WM_ERASEBKGND: //Sent when the window background must be erased (for example, when a window is resized). 
         return 1;
+
+    case WM_LBUTTONDOWN:
+
+        colocaPeca(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), &desenhoTabuleiro);
+        break;
+
+    case WM_RBUTTONDOWN:
+        removePeca(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), &desenhoTabuleiro);
+        break;
+
+    case  WM_MOUSEMOVE:
+        if(TrackMouseEvent(&tme))
+            pararAgua(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), &desenhoTabuleiro);
+        break;
+
 
     case WM_GETMINMAXINFO: //Sent to a window when the size or position of the window is about to change. An application can use this message to override the window's default maximized size and position, or its default minimum or maximum tracking size.
         mmi = (MINMAXINFO*)lParam;

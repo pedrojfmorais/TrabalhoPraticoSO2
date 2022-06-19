@@ -105,20 +105,21 @@ BOOL WINAPI criaNamedPipeParaClientesMensagens(LPVOID p) {
 	while (mensagensServidorCliente->deveContinuar && numClientes < N_JOGADORES) {
 
 		offset = WaitForMultipleObjects(N_JOGADORES, mensagensServidorCliente->hEvents, FALSE, INFINITE);
+		_tprintf(_T("AQUI1\t"));
 		DWORD i = offset - WAIT_OBJECT_0;
 		if (i >= 0 && i < N_JOGADORES) {
 
 			if (GetOverlappedResult(mensagensServidorCliente->hPipes[i].hInstancia, &mensagensServidorCliente->hPipes[i].overlap, &nBytes, FALSE)) {
 
-				ResetEvent(mensagensServidorCliente->hEvents[i]);
+				//ResetEvent(mensagensServidorCliente->hEvents[i]);
 				WaitForSingleObject(mensagensServidorCliente->hMutex, INFINITE);
 				mensagensServidorCliente->hPipes[i].ativo = TRUE;
 				ReleaseMutex(mensagensServidorCliente->hMutex);
 			}
 			numClientes++;
 		}
-	}
-	*/
+
+	}*/
 
 	return TRUE;
 }
@@ -131,7 +132,9 @@ DWORD WINAPI clienteConectaNamedPipeTabuleiro(LPVOID p) {
 	BOOL ret;
 
 	do {
-		Sleep(5000);
+
+		WaitForSingleObject(dados->hEventAtualizacaoNoJogo, INFINITE);
+
 		for (int i = 0; i < N_JOGADORES; ++i) {
 			WaitForSingleObject(dados->hReadWriteMutexAtualizacaoNoJogo, INFINITE);
 			if (dados->hPipes[i].ativo) {
@@ -141,9 +144,7 @@ DWORD WINAPI clienteConectaNamedPipeTabuleiro(LPVOID p) {
 			}
 			ReleaseMutex(dados->hReadWriteMutexAtualizacaoNoJogo);
 		}
-	} while (_tcscmp(buf, TEXT("fim")));
-
-	dados->deveContinuar = 1;
+	} while (dados->deveContinuar);
 
 	// Desligar todas as instancias de named pipes
 	for (int i = 0; i < N_JOGADORES; i++) {
@@ -160,10 +161,6 @@ DWORD WINAPI clienteConectaNamedPipeMensagem(LPVOID p) {
 
 	MensagensServidorCliente* dadosMensagens = (MensagensServidorCliente*)p;
 	
-	TCHAR read[TAM];
-	DWORD n;
-	BOOL ret;
-	
 	for (int i = 0; i < N_JOGADORES; ++i) {
 
 		HANDLE hPipe;
@@ -172,7 +169,7 @@ DWORD WINAPI clienteConectaNamedPipeMensagem(LPVOID p) {
 		hPipe = CreateNamedPipe(
 			PIPE_NAME_MENSAGENS,
 			PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
-			PIPE_WAIT | PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE, 
+			PIPE_WAIT | PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE,
 			N_JOGADORES,
 			sizeof(BufferCell),
 			sizeof(BufferCell),
@@ -191,16 +188,20 @@ DWORD WINAPI clienteConectaNamedPipeMensagem(LPVOID p) {
 		ZeroMemory(&dadosMensagens->hPipes[i].overlap, sizeof(&dadosMensagens->hPipes[i].overlap));
 		dadosMensagens->hPipes[i].hInstancia = hPipe;
 		dadosMensagens->hPipes[i].overlap.hEvent = hEventTemp;
-		dadosMensagens->hPipes[i].ativo = FALSE;
+		dadosMensagens->hPipes[i].ativo = TRUE;
 		dadosMensagens->hEvents[i] = hEventTemp;
 
 		if (ConnectNamedPipe(hPipe, &dadosMensagens->hPipes[i].overlap)) {
 			exit(-1);
 		}
 	}
+
+	TCHAR read[TAM];
+	DWORD n;
+	BOOL ret;
 	
 	do {
-		_tprintf(_T("111111111111111111"));
+		_tprintf(_T("111111111111111111\n"));
 		
 		DWORD dwWait = WaitForMultipleObjects(
 			N_JOGADORES,
@@ -208,7 +209,6 @@ DWORD WINAPI clienteConectaNamedPipeMensagem(LPVOID p) {
 			FALSE,
 			INFINITE
 		);
-		
 		_tprintf(_T("22222222222222\n"));
 		
 		if (dwWait == WAIT_FAILED)
@@ -225,8 +225,12 @@ DWORD WINAPI clienteConectaNamedPipeMensagem(LPVOID p) {
 				dadosMensagens->hPipes[i].hInstancia,
 				&dadosMensagens->hPipes[i].overlap,
 				&n,
-				FALSE);
-			//109 Erro que dá porque o cliente se desligou do outro lado
+				FALSE
+			);
+
+			ResetEvent(dadosMensagens->hEvents[i]);
+
+			//109 Erro cliente desligou-se
 			if (!ret && GetLastError() == 109) {
 				continue;
 			}
@@ -236,19 +240,27 @@ DWORD WINAPI clienteConectaNamedPipeMensagem(LPVOID p) {
 				return 0;
 			}
 			else if(dadosMensagens->hPipes[i].ativo) {
+				
 				int ret = ReadFile(dadosMensagens->hPipes[i].hInstancia, 
 					&dadosMensagens->mensagens[i], 
 					sizeof(BufferCell),
 					&n,
 					&dadosMensagens->hPipes[i].overlap);
 				
-				_tprintf(_T("%d %s"), ret, dadosMensagens->mensagens[i].mensagem);
-				//WriteFile(dadosMensagens->hPipes[i].hInstancia, &dadosMensagens->mensagens[i], sizeof(BufferCell), &n, &(dadosMensagens->hPipes[i].overlap));
-				ResetEvent(dadosMensagens->hEvents[i]);
+				/*
+				_tprintf(TEXT("[ESCRITOR] Frase: "));
+				_fgetts(dadosMensagens->mensagens[i].mensagem, TAM, stdin);
+				dadosMensagens->mensagens[i].mensagem[_tcslen(dadosMensagens->mensagens[i].mensagem) - 1] = '\0';
+				_tprintf(_T("%d %s %d"), ret, dadosMensagens->mensagens[i].mensagem, sizeof(BufferCell));
+
+				WriteFile(dadosMensagens->hPipes[i].hInstancia, &dadosMensagens->mensagens[i].mensagem, sizeof(TCHAR) * _tcslen(dadosMensagens->mensagens[i].mensagem), &n, &(dadosMensagens->hPipes[i].overlap));
+				*/
+				_tprintf(_T("33333333333333333333\n"));
+				_tprintf(_T("%s\n"), dadosMensagens->mensagens[i].mensagem);
 			}
 			else {
 				dadosMensagens->hPipes[i].ativo = TRUE;
-				ResetEvent(dadosMensagens->hEvents[i]);
+				_tprintf(_T("44444444444444444444\n"));
 			}
 		}
 	}while (1);
@@ -415,33 +427,6 @@ DWORD WINAPI leMensagemUtilizador(LPVOID p) {
 					inicializaJogo(partilhaJogo->jogos[i], partilhaJogo->definicoesJogo);
 					
 					if (i == 0) {
-						/*
-						//debug
-						//jogo com solução
-						for (DWORD j = 0; j < partilhaJogo->jogos[i]->nLinhas; j++)
-							for (DWORD k = 0; k < partilhaJogo->jogos[i]->nColunas; k++)
-								partilhaJogo->jogos[i]->mapaJogo[j][k] = tuboVazio;
-
-						partilhaJogo->jogos[i]->mapaJogo[0][0] = tuboOrigemAgua * 10;
-
-						partilhaJogo->jogos[i]->coordenadasOrigemAgua[0] = 0;
-						partilhaJogo->jogos[i]->coordenadasOrigemAgua[1] = 0;
-
-						partilhaJogo->jogos[i]->coordenadaAtualAgua[0] = 0;
-						partilhaJogo->jogos[i]->coordenadaAtualAgua[1] = 0;
-
-						partilhaJogo->jogos[i]->mapaJogo[0][1] = tuboHorizontal;
-						partilhaJogo->jogos[i]->mapaJogo[0][2] = tuboHorizontal;
-						partilhaJogo->jogos[i]->mapaJogo[0][3] = tuboCurvaEsquerdaBaixo;
-						partilhaJogo->jogos[i]->mapaJogo[1][3] = tuboVertical;
-						partilhaJogo->jogos[i]->mapaJogo[2][3] = tuboVertical;
-						partilhaJogo->jogos[i]->mapaJogo[3][3] = tuboCurvaEsquerdaCima;
-						partilhaJogo->jogos[i]->mapaJogo[3][2] = tuboCurvaDireitaBaixo;
-						partilhaJogo->jogos[i]->mapaJogo[4][2] = tuboCurvaDireitaCima;
-						partilhaJogo->jogos[i]->mapaJogo[4][3] = tuboHorizontal;
-						partilhaJogo->jogos[i]->mapaJogo[4][4] = tuboDestinoAgua;
-						//fim debug
-						*/
 						SetEvent(partilhaJogo->hEventJogosDecorrer);
 						ReleaseSemaphore(partilhaJogo->hSemaforoEnviarAtualizacoesJogo, 1, NULL);
 					}
@@ -486,6 +471,26 @@ DWORD WINAPI leMensagemUtilizador(LPVOID p) {
 						partilhaJogo->jogos[nJogador - 1]->pontuacao);
 			}
 		}
+		// TESTE COMDANDOS CLIENTE
+		else if (_tcscmp(command, _T("coloca")) == 0) {
+			TCHAR* _linha = _tcstok_s(NULL, _T(" "), &next_token);
+			TCHAR* _coluna = _tcstok_s(NULL, _T(" "), &next_token);
+
+			DWORD linha = (DWORD)_tcstod(_linha, _T('\0'));
+			DWORD coluna = (DWORD)_tcstod(_coluna, _T('\0'));
+
+			colocaPeca(partilhaJogo->jogos[0], linha, coluna);
+
+		} else if (_tcscmp(command, _T("limpa")) == 0) {
+			TCHAR* _linha = _tcstok_s(NULL, _T(" "), &next_token);
+			TCHAR* _coluna = _tcstok_s(NULL, _T(" "), &next_token);
+
+			DWORD linha = (DWORD)_tcstod(_linha, _T('\0'));
+			DWORD coluna = (DWORD)_tcstod(_coluna, _T('\0'));
+
+			limpaPeca(partilhaJogo->jogos[0], linha, coluna);
+		}
+		// FIM TESTE COMDANDOS CLIENTE
 
 		ReleaseMutex(partilhaJogo->hReadWriteMutexAtualizacaoNoJogo);
 	}

@@ -24,7 +24,7 @@ DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max);
 #define CAMINHO_REGISTRY _T("software\\so2\\tp\\")
 #define PIPE_NAME_TABULEIRO _T("\\\\.\\pipe\\pipeTabuleiro")
 #define PIPE_NAME_MENSAGENS _T("\\\\.\\pipe\\pipeMensagens")
-
+#define ClickChangeBitMap 1
 
 //Evento para o fecho de todas as aplicações
 #define EVENT_FECHAR_TUDO _T("fecharTudo")
@@ -66,6 +66,8 @@ DWORD getRandomNumberBetweenMaxAndMin(DWORD min, DWORD max);
 #define CorAzulClaro 11
 #define CorSalmao 12
 #define CorAmareloClaro 14
+
+#define TAM_BITMAP 75
 
 //representa um jogo
 typedef struct {
@@ -189,6 +191,8 @@ typedef struct {
 
 	HANDLE hReadWriteMutexAtualizacaoNoJogo;
 
+	HANDLE hEventAtualizacaoNoJogo;
+
 	int deveContinuar;
 
 } PartilhaJogoServidorCliente;
@@ -226,6 +230,18 @@ typedef struct {
 
 	int* deveContinuar;
 } ThreadsCliente;
+
+typedef struct {
+	HANDLE hMutex;
+	int* xBitmap;
+	int* yBitmap;
+	HWND hWnd;
+	BITMAP bmp;
+	HDC bmpDC;
+	HDC* memDC;
+
+	DadosJogo dadosJogo;
+} DadosThreadDesenharTabuleiro;
 
 //definição de keyword usada para importar funções da DLL
 typedef BOOL(*PFUNC_TypeBool_NoArguments) ();
